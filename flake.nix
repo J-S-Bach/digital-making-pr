@@ -36,7 +36,7 @@
             dm-flash
             thonny
             mpremote
-            ESP32
+
           ];
 
           shellHook = ''
