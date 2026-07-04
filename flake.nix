@@ -17,12 +17,10 @@
       let
         pkgs = import nixpkgs { inherit system; };
 
+
+
         # Custom script for the compile and upload command
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
-
-
-
-
 
           # In case not needed
           # esptool --chip esp32c6 erase_flash
@@ -36,10 +34,11 @@
             dm-flash
             thonny
             mpremote
-
           ];
 
           shellHook = ''
+
+
             echo "Esptool Dev Shell"
             echo "Run 'dm-flash' to flash a connected device"
           '';
