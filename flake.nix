@@ -28,6 +28,15 @@
 
           mpremote mip install aioble
         '';
+
+        # Fetch the stubs specifically for the ESP32
+        esp32Stubs = pkgs.fetchFromGitHub {
+          owner = "Josverl";
+          repo = "micropython-stubs";
+          sparseCheckout = [ "publish/micropython-v1_28_0-esp32-stubs" ];
+          rev = "0f3195c43dfbf83c8219782394dfefc003bc3f63";
+          sha256 = "sha256-MQlBN6KouZpc7dlSEVHXOmNXz6iXr5bQpDkTGWPCihs=";
+        };
       in
       {
         devShells.default = pkgs.mkShell {
@@ -43,6 +52,15 @@
 
 
             echo "Esptool Dev Shell"
+
+            echo "Exporting pythonpath with value ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs"
+            export PYTHONPATH="$PYTHONPATH:${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs"
+
+            mkdir ./.stubs/
+
+            ln -s ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs/* ./.stubs/
+
+
             echo "Run 'dm-flash' to flash a connected device"
           '';
         };
