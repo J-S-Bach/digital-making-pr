@@ -17,7 +17,10 @@
       let
         pkgs = import nixpkgs { inherit system; };
 
-
+        run-main = pkgs.writeShellScriptBin "run-main" ''
+          echo "Executing local file main.py on ESP32"
+          mpremote run ./src/main.py
+        '';
 
         # Custom script for the compile and upload command
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
@@ -34,6 +37,7 @@
             dm-flash
             thonny
             mpremote
+            run-main
           ];
 
           shellHook = ''
