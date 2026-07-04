@@ -24,10 +24,9 @@
 
         # Custom script for the compile and upload command
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
-
-          # In case not needed
-          # esptool --chip esp32c6 erase_flash
           esptool --chip esp32c6 --baud 460800 write_flash -z 0x0 ESP32_GENERIC_C6-20260406-v1.28.0.bin
+
+          mpremote mip install aioble
         '';
       in
       {
