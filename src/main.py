@@ -15,23 +15,24 @@ target_UUIDs = ["d4:3a:2c:56:13:10"]
 
 async def scan():
     print("Start Scan:")
-    async with aioble.scan(duration_ms=0, interval_us=1000) as scanner:
+    async with aioble.scan(
+        duration_ms=0, interval_us=30000, window_us=30000, active=True
+    ) as scanner:
         async for result in scanner:
             device_address = binascii.hexlify(result.device.addr, ":").decode("utf-8")
 
             for target_UUID in target_UUIDs:
-                print(target_UUID, device_address)
                 if device_address == target_UUID:
                     print("Found device. RSSI:", result.rssi)
 
-            print(
-                "Found device address",
-                device_address,
-                "with rssi of ",
-                result.rssi,
-                "and name",
-                result.name(),
-            )
+            # print(
+            #     "Found device address",
+            #     device_address,
+            #     "with rssi of ",
+            #     result.rssi,
+            #     "and name",
+            #     result.name(),
+            # )
 
 
 async def rssi(device: aioble.Device):
