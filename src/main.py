@@ -35,38 +35,4 @@ async def scan():
             # )
 
 
-async def rssi(device: aioble.Device):
-    try:
-        connection = await device.connect(timeout_ms=2000)
-        # Wait briefly for connection to stabilize if needed
-        # handle = connection._conn_handle
-        # rssi = ble.gap_scan(0)
-        print(f"Connected RSSI: {rssi} dBm")
-    except asyncio.TimeoutError:
-        print("Connection failed")
-
-
-async def peripheral_task():
-    while True:
-        try:
-            async with await aioble.advertise(
-                _ADV_INTERVAL_MS,
-                name="ESP32",
-                services=[_BLE_SERVICE_UUID],
-            ) as connection:
-                print("Connection from", connection.device)
-                #                    print("id: ", connection.uuid)
-                # await rssi(connection.device)
-
-                await connection.disconnected()
-        except asyncio.CancelledError:
-            # Catch the CancelledError
-            print("Peripheral task cancelled")
-        except Exception as e:
-            print("Error in peripheral_task:", e)
-        finally:
-            # Ensure the loop continues to the next iteration
-            await asyncio.sleep_ms(100)
-
-
 asyncio.run(scan())
