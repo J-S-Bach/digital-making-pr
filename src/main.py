@@ -1,36 +1,45 @@
+import binascii
+
 import aioble
 import bluetooth
 import uasyncio as asyncio
-import binascii
 
-_BLE_SERVICE_UUID = bluetooth.UUID('19b10000-e8f2-537e-4f6c-d104768a1214')
-#_BLE_SENSOR_CHAR_UUID = bluetooth.UUID('19b10001-e8f2-537e-4f6c-d104768a1214')
-#_BLE_LED_UUID = bluetooth.UUID('19b10002-e8f2-537e-4f6c-d104768a1214')
+_BLE_SERVICE_UUID = bluetooth.UUID("19b10000-e8f2-537e-4f6c-d104768a1214")
+# _BLE_SENSOR_CHAR_UUID = bluetooth.UUID('19b10001-e8f2-537e-4f6c-d104768a1214')
+# _BLE_LED_UUID = bluetooth.UUID('19b10002-e8f2-537e-4f6c-d104768a1214')
 # How frequently to send advertising beacons.
 _ADV_INTERVAL_MS = 250_000
 
-target_UUIDs = ['94:45:60:37:f6:13']
+target_UUIDs = ["d4:3a:2c:56:13:10"]
+
 
 async def scan():
-    print('Start Scan:')
-    async with aioble.scan(duration_ms=5000) as scanner:
+    print("Start Scan:")
+    async with aioble.scan(duration_ms=0, interval_us=1000) as scanner:
         async for result in scanner:
-           device_address = binascii.hexlify(result.device.addr, ':').decode('utf-8')
+            device_address = binascii.hexlify(result.device.addr, ":").decode("utf-8")
 
-           for target_UUID in target_UUIDs:
-               if device_address is target_UUID:
-                   print("Found device. RSSI:", result.rssi)
+            for target_UUID in target_UUIDs:
+                print(target_UUID, device_address)
+                if device_address == target_UUID:
+                    print("Found device. RSSI:", result.rssi)
 
-           print("Found device address", device_address, "with rssi of ", result.rssi)
+            print(
+                "Found device address",
+                device_address,
+                "with rssi of ",
+                result.rssi,
+                "and name",
+                result.name(),
+            )
 
 
-
-async def rssi(device):
+async def rssi(device: aioble.Device):
     try:
         connection = await device.connect(timeout_ms=2000)
         # Wait briefly for connection to stabilize if needed
-        handle = connection._conn_handle
-        rssi = ble.gap_scan(0)
+        # handle = connection._conn_handle
+        # rssi = ble.gap_scan(0)
         print(f"Connected RSSI: {rssi} dBm")
     except asyncio.TimeoutError:
         print("Connection failed")
@@ -43,13 +52,12 @@ async def peripheral_task():
                 _ADV_INTERVAL_MS,
                 name="ESP32",
                 services=[_BLE_SERVICE_UUID],
-                ) as connection:
-                    print("Connection from", connection.device)
-#                    print("id: ", connection.uuid)
-                    #await rssi(connection.device)
+            ) as connection:
+                print("Connection from", connection.device)
+                #                    print("id: ", connection.uuid)
+                # await rssi(connection.device)
 
-
-                    await connection.disconnected()             
+                await connection.disconnected()
         except asyncio.CancelledError:
             # Catch the CancelledError
             print("Peripheral task cancelled")
@@ -60,5 +68,4 @@ async def peripheral_task():
             await asyncio.sleep_ms(100)
 
 
-
-asyncio.run(peripheral_task())
+asyncio.run(scan())

@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    micropython-lib-src = {
+      url = "github:micropython/micropython-lib";
+      flake = false;
+    };
   };
 
   outputs =
@@ -11,6 +15,7 @@
       self,
       nixpkgs,
       flake-utils,
+      micropython-lib-src
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -37,6 +42,17 @@
           rev = "0f3195c43dfbf83c8219782394dfefc003bc3f63";
           sha256 = "sha256-MQlBN6KouZpc7dlSEVHXOmNXz6iXr5bQpDkTGWPCihs=";
         };
+
+        aioble = pkgs.stdenv.mkDerivation {
+          pname = "micropython-aioble";
+          version = "master";
+          src = micropython-lib-src;
+
+          installPhase = ''
+            mkdir -p $out/aioble
+            cp -r micropython/bluetooth/aioble/aioble/* $out/aioble/
+          '';
+        };
       in
       {
         devShells.default = pkgs.mkShell {
@@ -46,6 +62,8 @@
             thonny
             mpremote
             run-main
+            aioble
+            python313
           ];
 
           shellHook = ''
@@ -56,9 +74,12 @@
             echo "Exporting pythonpath with value ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs"
             export PYTHONPATH="$PYTHONPATH:${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs"
 
-            mkdir ./.stubs/
+            mkdir ./typings/
 
-            ln -s ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs/* ./.stubs/
+            ln -s ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs/* ./typings/
+            ln -sn ${aioble}/aioble ./typings/aioble
+
+            echo ${aioble}
 
 
             echo "Run 'dm-flash' to flash a connected device"
