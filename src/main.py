@@ -1,17 +1,18 @@
 import binascii
+import time
 
 import aioble
 import bluetooth
+import config
+import network
 import uasyncio as asyncio
 
 _BLE_SERVICE_UUID = bluetooth.UUID("19b10000-e8f2-537e-4f6c-d104768a1214")
-# _BLE_SENSOR_CHAR_UUID = bluetooth.UUID('19b10001-e8f2-537e-4f6c-d104768a1214')
-# _BLE_LED_UUID = bluetooth.UUID('19b10002-e8f2-537e-4f6c-d104768a1214')
-# How frequently to send advertising beacons.
-_ADV_INTERVAL_MS = 250_000
+
 
 target_UUIDs = ["d4:3a:2c:56:13:10"]
 
+# Subject to be set by calibration sequence
 P0 = -75.0  # RSSI measured exactly 1 meter away
 N = 2.5  # Environmental path loss factor (2.0 = open, 3.0+ = heavy walls)
 
@@ -37,18 +38,35 @@ async def scan():
                     print(
                         "Found device. RSSI:",
                         result.rssi,
-                        "\n Estimated distance:",
+                        "\nEstimated distance:",
                         rssi_to_distance(result.rssi),
                     )
 
-            # print(
-            #     "Found device address",
-            #     device_address,
-            #     "with rssi of ",
-            #     result.rssi,
-            #     "and name",
-            #     result.name(),
-            # )
+
+def connect_wifi():
+
+    station = network.WLAN(network.STA_IF)
+    station.active(True)
+    station.connect(config.WIFI_NAME, config.WIFI_PASSWORD)
+
+    print("trying to connect to wifi ", config.WIFI_NAME)
+
+    # Wait for connection
+    timeout = 10
+    while not station.isconnected() and timeout > 0:
+        time.sleep(1)
+        timeout -= 1
+
+    if station.isconnected():
+        print("Connection successful")
+        print(station.ifconfig())
+        return True
+    else:
+        print("Connection failed. Timeout reached")
+        return False
 
 
-asyncio.run(scan())
+# Allows to cancel
+# scan_task = asyncio.create_task(scan())
+# scan_task.cancel()
+connect_wifi()

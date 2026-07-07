@@ -23,8 +23,31 @@
         pkgs = import nixpkgs { inherit system; };
 
         run-main = pkgs.writeShellScriptBin "run-main" ''
-          echo "Executing local file main.py on ESP32"
-          mpremote run ./src/main.py
+            echo "Executing local file main.py on ESP32"
+
+            if [ -f .env ]; then
+                echo "Loading secrets from .env..."
+                export $(grep -v '^#' .env | xargs)
+            else
+                echo ".env file not found!"
+                return 1
+            fi
+
+
+            if [ -n "$WIFI_NAME" ] && [ -n "$WIFI_PASSWORD" ]; then
+                echo "Making config.py file crispy clean!"
+                mpremote fs rm config.py
+                echo "Writing config.py to device"
+                mpremote exec "
+with open('config.py', 'w') as f:
+    f.write('WIFI_NAME = \"$WIFI_NAME\"\n')
+    f.write('WIFI_PASSWORD = \"$WIFI_PASSWORD\"\n')
+"
+                else
+                    echo "WIFI_NAME or WIFI_PASSWORD not set. Skipping config generation."
+                fi
+            # python runner.py
+            mpremote run ./src/main.py
         '';
 
         # Custom script for the compile and upload command
@@ -64,6 +87,7 @@
             run-main
             aioble
             python313
+
           ];
 
           shellHook = ''
@@ -79,7 +103,30 @@
             ln -s ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs/* ./typings/
             ln -sn ${aioble}/aioble ./typings/aioble
 
-            echo ${aioble}
+            # Generated with the power of AI (Googles Gemini)!
+            # Symlink the generated .pyi stub to the current directory if it doesn't exist
+
+
+            if [ -f .env ]; then
+                echo "📝 Generating config.pyi type stub from .env..."
+
+                echo "# Auto-generated type stub" > "./typings/config.py"
+
+                # Parse keys from .env (ignoring comments/empty lines) and map them to standard types
+                # Map standard mpremote network keys directly to 'str' types
+                grep -v '^#' .env | grep '=' | cut -d'=' -f1 | while read -r key; do
+                if [ "$key" = "WIFI_NAME" ]; then
+                    echo "SSID: str" >> "./typings/config.py"
+                elif [ "$key" = "WIFI_PASSWORD" ]; then
+                    echo "PASS: str" >> "./typings/config.py"
+                else
+                    echo "$key: str" >> "./typings/config.py"
+                fi
+                done
+            else
+                echo "⚠️  No .env file found; skipping config.pyi generation."
+            fi
+
 
 
             echo "Run 'dm-flash' to flash a connected device"
