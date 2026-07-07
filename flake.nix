@@ -91,8 +91,6 @@ with open('config.py', 'w') as f:
           ];
 
           shellHook = ''
-
-
             echo "Esptool Dev Shell"
 
             echo "Exporting pythonpath with value ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs"
@@ -105,26 +103,19 @@ with open('config.py', 'w') as f:
 
             # Generated with the power of AI (Googles Gemini)!
             # Symlink the generated .pyi stub to the current directory if it doesn't exist
-
-
             if [ -f .env ]; then
-                echo "📝 Generating config.pyi type stub from .env..."
-
-                echo "# Auto-generated type stub" > "./typings/config.py"
-
-                # Parse keys from .env (ignoring comments/empty lines) and map them to standard types
-                # Map standard mpremote network keys directly to 'str' types
                 grep -v '^#' .env | grep '=' | cut -d'=' -f1 | while read -r key; do
-                if [ "$key" = "WIFI_NAME" ]; then
-                    echo "SSID: str" >> "./typings/config.py"
-                elif [ "$key" = "WIFI_PASSWORD" ]; then
-                    echo "PASS: str" >> "./typings/config.py"
+                key=$(echo "$key" | xargs)
+                if [ "$key" = "WIFI_SSID" ]; then
+                    echo "SSID: str" >> "./typings/config.pyi"
+                elif [ "$key" = "WIFI_PASS" ]; then
+                    echo "PASS: str" >> "./typings/config.pyi"
                 else
-                    echo "$key: str" >> "./typings/config.py"
+                    echo "$key: str" >> "./typings/config.pyi"
                 fi
                 done
             else
-                echo "⚠️  No .env file found; skipping config.pyi generation."
+                echo "No .env file found; skipping config.pyi generation."
             fi
 
 
