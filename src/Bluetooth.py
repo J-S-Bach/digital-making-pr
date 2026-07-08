@@ -1,4 +1,7 @@
 import aioble
+from aioble.central import scan
+
+import bluetooth
 
 try:
     from typing import Callable, List
@@ -7,8 +10,7 @@ except ImportError:
 
 
 class BluetoothScanner:
-    search_macs: List[str] = []
-
+    target_service_uuids: List[bluetooth.UUID] = []
     # Subject to be set by calibration sequence - therefore updatable by __init__
     P0 = -75.0
     """
@@ -19,10 +21,16 @@ class BluetoothScanner:
     Environmental path loss factor (2.0 = open, 3.0+ = heavy walls)
     """
 
+    _active_scanner: scan | None = None
+    _subscriptions: List[Callable[[bluetooth.UUID, int], None]] = []
+
     def __init__(
-        self, search_macs: List[str], P0: int | None = None, N: int | None = None
+        self,
+        search_macs: List[bluetooth.UUID],
+        P0: int | None = None,
+        N: int | None = None,
     ) -> None:
-        self.search_macs = search_macs
+        self.target_service_uuids = search_macs
 
         if P0 is not None:
             self.P0 = P0
@@ -30,11 +38,40 @@ class BluetoothScanner:
         if N is not None:
             self.N = N
 
+    def subscribe(self, func: Callable[[bluetooth.UUID, int], None]):
+        """
+        Register a function here that should be called when a scan result has been found. If you want to only find a scan result once, use `unsubscribe` and / or `pause` to cancel it.
+        """
+        self._subscriptions.append(func)
+
+    def unsubscribe(self, func: Callable[[bluetooth.UUID, int], None]):
+        """
+        You need to provide the same function to cancel it. Take care of it!
+        """
+        self._subscriptions.remove(func)
+
+    async def start(self):
+        """
+        Call this function to start scanning. Initially is not scanning!
+        """
+        await self._scan()
+
+    async def pause(self):
+        """
+        Call this function to pause. Initially is not scanning!
+        """
+        if self._active_scanner is not None:
+            await self._active_scanner.cancel()
+
+    def _call_subscriptions(self, mac: bluetooth.UUID, rssi: int):
+        for subscription in self._subscriptions:
+            subscription(mac, rssi)
+
     # TODO: If you have too much time and motivation: Type onResultFound's first parameter to be of the type of the static ids given in the __init__
-    async def scan(
+    async def _scan(
         self,
-        onResultFound: Callable[[str, int], None],
-        continuously: bool | None = False,
+        # onResultFound: Callable[[str, int], None],
+        # continuously: bool | None = False,
     ):
         """
         Start a scan with the given ids (construction parameters).
@@ -44,22 +81,26 @@ class BluetoothScanner:
         """
         async with aioble.scan(
             duration_ms=0,
-            interval_us=30000 if continuously else None,
-            window_us=30000 if continuously else None,
+            interval_us=1280000,
+            window_us=1280000,
             active=True,
         ) as scanner:
-            print(f"Starting to scan for address(es) {', '.join(self.search_macs)}")
-            async for result in scanner:
-                device_bluetooth_mac = result.device.addr_hex()
+            uuid_strings = [str(uuid) for uuid in self.target_service_uuids]
+            joined_uuids = ", ".join(uuid_strings)
 
-                for target_bluetooth_mac in self.search_macs:
-                    if device_bluetooth_mac == target_bluetooth_mac:
-                        if result.rssi is None:
-                            raise Exception(
-                                f"No rssi provided from scan to ${device_bluetooth_mac}!"
-                            )
-                        print("result!")
-                        onResultFound(target_bluetooth_mac, int(result.rssi))
+            print(f"Starting to scan for address(es) {joined_uuids}")
+            self._active_scanner = scanner
+
+            async for result in scanner:
+                for uuid in result.services():
+                    for target_service_uuid in self.target_service_uuids:
+                        if target_service_uuid == uuid:
+                            if result.rssi is None:
+                                raise Exception(
+                                    f"No rssi provided from scan to ${target_service_uuid}!"
+                                )
+                            print("result!")
+                            self._call_subscriptions(mac=uuid, rssi=int(result.rssi))
 
     def _rssi_to_distance(self, rssi):
         """Converts a filtered RSSI value into an approximate distance in meters."""

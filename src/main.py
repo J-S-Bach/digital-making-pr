@@ -47,7 +47,7 @@ async def wake_up(request):
     return json.dumps({"deviceId": _DEVICE_ID, "bluetoothMac": DEVICE_MAC_ADDRESS})
 
 
-TARGET_BLUETOOTH_MACs = ["d4:3a:2c:56:13:10"]
+TARGET_BLUETOOTH_UUIDs = [bluetooth.UUID(0xAAAA)]
 
 
 def connect_wifi():
@@ -86,12 +86,13 @@ async def main():
     asyncio.create_task(setup_api_calls())
 
     # Setup bluetooth scanning
-    other_esp_scanner = BluetoothScanner(TARGET_BLUETOOTH_MACs)
+    other_esp_scanner = BluetoothScanner(TARGET_BLUETOOTH_UUIDs)
 
     def handleScanResult(id, rssi):
         print(f"found result ${id} with rsso ${rssi}")
 
-    asyncio.create_task(other_esp_scanner.scan(handleScanResult, True))
+    other_esp_scanner.subscribe(handleScanResult)
+    asyncio.create_task(other_esp_scanner.start())
 
     # Keep application alive indefinetely
     while True:
