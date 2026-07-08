@@ -8,8 +8,8 @@
       url = "github:micropython/micropython-lib";
       flake = false;
     };
-    micropyserver-src = {
-      url = "github:troublegum/micropyserver";
+    microdot-src = {
+      url = "github:miguelgrinberg/microdot";
       flake = false;
     };
   };
@@ -20,7 +20,7 @@
       nixpkgs,
       flake-utils,
       micropython-lib-src,
-      micropyserver-src
+      microdot-src
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -49,7 +49,9 @@ with open('config.py', 'w') as f:
                 else
                     echo "WIFI_NAME or WIFI_PASSWORD not set. Skipping config generation."
                 fi
-            # python runner.py
+
+            # Should also etch it for starting without running it locally. In theory. Is untested. Without warranty.
+            mpremote cp -r ./src/* :.
             mpremote run ./src/main.py
         '';
 
@@ -57,7 +59,7 @@ with open('config.py', 'w') as f:
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
           esptool --chip esp32c6 --baud 460800 write_flash -z 0x0 ESP32_GENERIC_C6-20260406-v1.28.0.bin
 
-          install-micropyserver
+          install-microdot
           install-aioble
         '';
 
@@ -79,13 +81,14 @@ with open('config.py', 'w') as f:
             cp ${micropython-lib-src}/micropython/bluetooth/aioble/aioble/* ./typings/aioble/
         '';
 
-        install-micropyserver = pkgs.writeShellScriptBin "install-micropyserver" ''
-            echo "Installing micropyserver to connected device..."
+        install-microdot = pkgs.writeShellScriptBin "install-microdot" ''
+            echo "Installing microdot to connected device..."
 
-            mpremote cp ${micropyserver-src}/micropyserver.py :micropyserver.py
+            mpremote fs mkdir :/lib/microdot
+            mpremote fs cp ${microdot-src}/src/microdot/* :lib/microdot
 
-            mkdir -p ./typings/micropyserver
-            cp ${micropyserver-src}/micropyserver.py ./typings/micropyserver/
+            mkdir -p ./typings/microdot
+            cp ${microdot-src}/src/microdot/* ./typings/microdot/
         '';
       in
       {
@@ -97,7 +100,7 @@ with open('config.py', 'w') as f:
             mpremote
             run-main
             python313
-            install-micropyserver
+            install-microdot
             install-aioble
           ];
 

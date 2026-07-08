@@ -18,19 +18,19 @@
         "type": "github"
       }
     },
-    "micropyserver-src": {
+    "microdot-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1736712266,
-        "narHash": "sha256-O6LfLimSAuSjZjIUMToGFtZ/WeTe+7fYFqbure/z+Po=",
-        "owner": "troublegum",
-        "repo": "micropyserver",
-        "rev": "15709f10a97402ba81284b96c6ee48a43c8b41e3",
+        "lastModified": 1779266403,
+        "narHash": "sha256-NLesjPuWl3okFe2d/bUDzbi/mtU6bgcn8cG4evQwGMs=",
+        "owner": "miguelgrinberg",
+        "repo": "microdot",
+        "rev": "ab1793a2813858ef299367d34c594f7bfda2d1ea",
         "type": "github"
       },
       "original": {
-        "owner": "troublegum",
-        "repo": "micropyserver",
+        "owner": "miguelgrinberg",
+        "repo": "microdot",
         "type": "github"
       }
     },
@@ -69,7 +69,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "micropyserver-src": "micropyserver-src",
+        "microdot-src": "microdot-src",
         "micropython-lib-src": "micropython-lib-src",
         "nixpkgs": "nixpkgs"
       }
