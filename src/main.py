@@ -44,16 +44,16 @@ async def scan():
 
 
 def connect_wifi():
-
     station = network.WLAN(network.STA_IF)
     station.active(True)
     station.connect(config.WIFI_NAME, config.WIFI_PASSWORD)
 
-    print("trying to connect to wifi ", config.WIFI_NAME)
+    print("Connecting to wifi", config.WIFI_NAME)
 
     # Wait for connection
     timeout = 10
     while not station.isconnected() and timeout > 0:
+        print("Timeout (try ", 10 - timeout, "/10)")
         time.sleep(1)
         timeout -= 1
 
@@ -66,7 +66,12 @@ def connect_wifi():
         return False
 
 
+async def main():
+    connect_wifi()
+
+
 # Allows to cancel
-# scan_task = asyncio.create_task(scan())
+# scan_task = asyncio.create_task(main())
 # scan_task.cancel()
-connect_wifi()
+
+asyncio.run(main())

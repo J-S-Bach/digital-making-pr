@@ -18,6 +18,22 @@
         "type": "github"
       }
     },
+    "micropyserver-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1736712266,
+        "narHash": "sha256-O6LfLimSAuSjZjIUMToGFtZ/WeTe+7fYFqbure/z+Po=",
+        "owner": "troublegum",
+        "repo": "micropyserver",
+        "rev": "15709f10a97402ba81284b96c6ee48a43c8b41e3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "troublegum",
+        "repo": "micropyserver",
+        "type": "github"
+      }
+    },
     "micropython-lib-src": {
       "flake": false,
       "locked": {
@@ -53,6 +69,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "micropyserver-src": "micropyserver-src",
         "micropython-lib-src": "micropython-lib-src",
         "nixpkgs": "nixpkgs"
       }

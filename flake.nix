@@ -8,6 +8,10 @@
       url = "github:micropython/micropython-lib";
       flake = false;
     };
+    micropyserver-src = {
+      url = "github:troublegum/micropyserver";
+      flake = false;
+    };
   };
 
   outputs =
@@ -15,7 +19,8 @@
       self,
       nixpkgs,
       flake-utils,
-      micropython-lib-src
+      micropython-lib-src,
+      micropyserver-src
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -35,10 +40,8 @@
 
 
             if [ -n "$WIFI_NAME" ] && [ -n "$WIFI_PASSWORD" ]; then
-                echo "Making config.py file crispy clean!"
-                mpremote fs rm config.py
-                echo "Writing config.py to device"
-                mpremote exec "
+            mpremote fs rm config.py
+            mpremote exec "
 with open('config.py', 'w') as f:
     f.write('WIFI_NAME = \"$WIFI_NAME\"\n')
     f.write('WIFI_PASSWORD = \"$WIFI_PASSWORD\"\n')
@@ -54,7 +57,8 @@ with open('config.py', 'w') as f:
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
           esptool --chip esp32c6 --baud 460800 write_flash -z 0x0 ESP32_GENERIC_C6-20260406-v1.28.0.bin
 
-          mpremote mip install aioble
+          install-micropyserver
+          install-aioble
         '';
 
         # Fetch the stubs specifically for the ESP32
@@ -66,16 +70,23 @@ with open('config.py', 'w') as f:
           sha256 = "sha256-MQlBN6KouZpc7dlSEVHXOmNXz6iXr5bQpDkTGWPCihs=";
         };
 
-        aioble = pkgs.stdenv.mkDerivation {
-          pname = "micropython-aioble";
-          version = "master";
-          src = micropython-lib-src;
+        install-aioble = pkgs.writeShellScriptBin "install-aioble" ''
+            echo "Installing aioble to connected device..."
 
-          installPhase = ''
-            mkdir -p $out/aioble
-            cp -r micropython/bluetooth/aioble/aioble/* $out/aioble/
-          '';
-        };
+            mpremote mip install aioble
+
+            mkdir -p  ./typings/aioble/
+            cp ${micropython-lib-src}/micropython/bluetooth/aioble/aioble/* ./typings/aioble/
+        '';
+
+        install-micropyserver = pkgs.writeShellScriptBin "install-micropyserver" ''
+            echo "Installing micropyserver to connected device..."
+
+            mpremote cp ${micropyserver-src}/micropyserver.py :micropyserver.py
+
+            mkdir -p ./typings/micropyserver
+            cp ${micropyserver-src}/micropyserver.py ./typings/micropyserver/
+        '';
       in
       {
         devShells.default = pkgs.mkShell {
@@ -85,9 +96,9 @@ with open('config.py', 'w') as f:
             thonny
             mpremote
             run-main
-            aioble
             python313
-
+            install-micropyserver
+            install-aioble
           ];
 
           shellHook = ''
@@ -99,7 +110,6 @@ with open('config.py', 'w') as f:
             mkdir ./typings/
 
             ln -s ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs/* ./typings/
-            ln -sn ${aioble}/aioble ./typings/aioble
 
             # Generated with the power of AI (Googles Gemini)!
             # Symlink the generated .pyi stub to the current directory if it doesn't exist
@@ -117,8 +127,6 @@ with open('config.py', 'w') as f:
             else
                 echo "No .env file found; skipping config.pyi generation."
             fi
-
-
 
             echo "Run 'dm-flash' to flash a connected device"
           '';
