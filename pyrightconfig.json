@@ -2,7 +2,6 @@
   "stubPath": "./typings",
   "extraPaths": ["./src"],
 
-  // Core configuration for MicroPython environment characteristics
   "reportMissingModuleSource": false,
   "reportOptionalContextManager": false,
   "reportPrivateLocalImportUsage": false,
@@ -20,7 +19,7 @@
 
   "executionEnvironments": [
     {
-      "root": ".",
-    },
-  ],
+      "root": "."
+    }
+  ]
 }
