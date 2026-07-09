@@ -99,7 +99,6 @@ class BluetoothScanner:
                                 raise Exception(
                                     f"No rssi provided from scan to ${target_service_uuid}!"
                                 )
-                            print("result!")
                             self._call_subscriptions(mac=uuid, rssi=int(result.rssi))
 
     def _rssi_to_distance(self, rssi):

@@ -32,19 +32,30 @@ app = Microdot()
 _DEVICE_ID = generate_nanoid()
 
 
+@app.route("/identify")
+async def identify(request):
+    """
+    This api call is used to initially fetch data from this esp. With this, the host only needs to know the target ip address and we could even implement something elegant like [DAMN I FORGOT THE NAME, this thing where you send packages and it responds if it is the server wanted. mDNS?]
+    It does not expect any incoming parameter and sends own identifier (that is dynamically generated) and a bluetooth mac address.
+    """
+
+    # i guess we also need other identifiers?
+    return json.dumps({"deviceId": _DEVICE_ID, "bluetoothMac": DEVICE_MAC_ADDRESS})
+
+
+# TODO: Should we do this per technology? I think yes, but we should talk about this.
 @app.route("/wake-up")
 async def wake_up(request):
     """
     This api call is done to wake up this device. A similar one, to update a device that is already woken up can be found here [NOT YET IMPLEMENTED].
 
-    This expects to get the identifier of the device that should be tracked, and, optionally, a bluetooth mac address.
-    In turn, it sends the own identifier (that is dynamically generated) and a bluetooth mac address.
+    This expects to get the identifier of the device that should be tracked, the ip address of the device it should send the udp packages to, and, optionally, a bluetooth mac address.
+    In turn, it starts streaming udp packages to the target ip address.
     """
 
     print("Whom woken up the ancient one?")
 
-    # i guess we also need other identifiers?
-    return json.dumps({"deviceId": _DEVICE_ID, "bluetoothMac": DEVICE_MAC_ADDRESS})
+    return None
 
 
 TARGET_BLUETOOTH_UUIDs = [bluetooth.UUID(0xAAAA)]
@@ -75,7 +86,6 @@ def connect_wifi():
 
 # TODO: Setup https. Not sure if it matters, but we may send confidential data. Better safe than sorry, but not in MVP.
 async def setup_api_calls():
-    print("Microdot server started on port 80")
     await app.start_server(port=80)
 
 
