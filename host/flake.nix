@@ -18,12 +18,17 @@
         uv-install = pkgs.writeShellScriptBin "uv-install" ''
             uv sync
         '';
+
+        uv-run = pkgs.writeShellScriptBin "uv-run" ''
+            uv run ./src/main.py
+        '';
       in {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             python313
             uv
             uv-install
+            uv-run
           ];
 
           shellHook = ''
