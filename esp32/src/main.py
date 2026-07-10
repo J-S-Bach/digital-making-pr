@@ -32,7 +32,7 @@ _DEVICE_ID = generate_nanoid()
 
 
 # Outdated due to mDNS discovery?
-@app.route("/identify")
+@app.route("/identify", "POST")
 async def identify(request):
     """
     This api call is used to initially fetch data from this esp. With this, the host only needs to know the target ip address and we could even implement something elegant like mDNS?
@@ -43,7 +43,7 @@ async def identify(request):
     return json.dumps({"deviceId": _DEVICE_ID, "bluetoothMac": DEVICE_MAC_ADDRESS})
 
 
-@app.route("/bluetooth/wake-up")
+@app.route("/bluetooth/wake-up", "POST")
 async def bluetooth_wake_up(request):
     """
     URL: `/bluetooth/wake-up`
@@ -64,7 +64,7 @@ async def bluetooth_wake_up(request):
 
     return None
 
-@app.route("/bluetooth/sleep")
+@app.route("/bluetooth/sleep", "POST")
 async def bluetooth_sleep(request):
     """
     URL: `/bluetooth/sleep`
@@ -79,7 +79,7 @@ async def bluetooth_sleep(request):
 
     return None
 
-@app.route("/bluetooth/change")
+@app.route("/bluetooth/change", "POST")
 async def bluetooth_change(request):
     """
     URL: `/bluetooth/change`

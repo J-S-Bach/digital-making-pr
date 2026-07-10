@@ -59,7 +59,7 @@ async def start_mdns_responder(hostname, ip_address):
 
     # Standard mDNS multicast group and port
     MDNS_ADDR = '224.0.0.251'
-    MDNS_PORT = 12345
+    MDNS_PORT = getattr(config, 'DISCOVERY_PORT', 6767)
 
     # Create a UDP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -75,7 +75,6 @@ async def start_mdns_responder(hostname, ip_address):
     while True:
         try:
             data, addr = sock.recvfrom(1024)
-            print(f"data {data} {addr}")
             # Check if the incoming request contains our custom service type string
             if b'_esp32-tracker-discovery-service' in data:
                 # Send a simple target payload response back to the laptop

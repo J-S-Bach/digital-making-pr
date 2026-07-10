@@ -85,7 +85,7 @@ with open('config.py', 'w') as f:
         install-microdot = pkgs.writeShellScriptBin "install-microdot" ''
             echo "Installing microdot to connected device..."
 
-            mkdir fs :/lib
+            mpremote mkdir fs :/lib
             mpremote fs mkdir :/lib/microdot
             mpremote fs cp ${microdot-src}/src/microdot/* :lib/microdot
 
@@ -118,19 +118,23 @@ with open('config.py', 'w') as f:
 
             # Generated with the power of AI (Googles Gemini)!
             # Symlink the generated .pyi stub to the current directory if it doesn't exist
-            if [ -f .env ]; then
-                grep -v '^#' .env | grep '=' | cut -d'=' -f1 | while read -r key; do
+            # Explicitly name types you want to control. Defaults to str | None. Picks up types from .env.default
+            if [ -f .env.default ]; then
+                rm "./typings/config.pyi"
+                grep -v '^#' .env.default | grep '=' | cut -d'=' -f1 | while read -r key; do
                 key=$(echo "$key" | xargs)
-                if [ "$key" = "WIFI_SSID" ]; then
-                    echo "SSID: str" >> "./typings/config.pyi"
-                elif [ "$key" = "WIFI_PASS" ]; then
-                    echo "PASS: str" >> "./typings/config.pyi"
+                if [ "$key" = "WIFI_NAME" ]; then
+                    echo "WIFI_NAME: str" >> "./typings/config.pyi"
+                elif [ "$key" = "WIFI_PASSWORD" ]; then
+                    echo "WIFI_PASSWORD: str" >> "./typings/config.pyi"
+                elif [ "$key" = "DISCOVERY_PORT" ]; then
+                    echo "DISCOVERY_PORT: int | None" >> "./typings/config.pyi"
                 else
-                    echo "$key: str" >> "./typings/config.pyi"
+                    echo "$key: str | None" >> "./typings/config.pyi"
                 fi
                 done
             else
-                echo "No .env file found; skipping config.pyi generation."
+                echo "No .env.default file found; skipping config.pyi generation."
             fi
 
             echo "Run 'dm-flash' to flash a connected device"

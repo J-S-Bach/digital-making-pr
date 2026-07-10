@@ -1,1 +1,6 @@
+# Python stuff
 .venv
+__pycache__
+
+# Do not spill secrets
+.env

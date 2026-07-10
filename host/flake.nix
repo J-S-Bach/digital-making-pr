@@ -20,7 +20,7 @@
         '';
 
         uv-run = pkgs.writeShellScriptBin "uv-run" ''
-            uv run ./src/main.py
+            uv run python -m src.main
         '';
       in {
         devShells.default = pkgs.mkShell {
