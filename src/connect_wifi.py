@@ -18,7 +18,7 @@ def connect_wifi():
     # Wait for connection
     timeout = 10
     while not station.isconnected() and timeout > 0:
-        print("Timeout (try", 9 - timeout, "/ 10)")
+        print("Timeout (try", 11 - timeout, "/ 10)")
         time.sleep(1)
         timeout -= 1
 
