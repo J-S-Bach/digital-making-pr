@@ -31,6 +31,7 @@ app = Microdot()
 _DEVICE_ID = generate_nanoid()
 
 
+# Outdated due to mDNS discovery?
 @app.route("/identify")
 async def identify(request):
     """
@@ -117,6 +118,7 @@ async def main():
 
     other_esp_scanner.subscribe(handleScanResult)
     asyncio.create_task(other_esp_scanner.start())
+
 
     # Keep application alive indefinetely
     while True:
