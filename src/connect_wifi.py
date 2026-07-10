@@ -1,3 +1,5 @@
+import asyncio
+
 import config
 import network
 import time
@@ -5,7 +7,7 @@ import ubinascii
 import socket
 import struct
 
-async def connect_wifi():
+def connect_wifi():
     station = network.WLAN(network.STA_IF)
 
     wifi_mac = ubinascii.hexlify(station.config('mac')).decode()
@@ -28,7 +30,7 @@ async def connect_wifi():
 
     if station.isconnected():
         ip = station.ifconfig()[0]
-        start_mdns_responder(hostname, ip)
+        asyncio.create_task(start_mdns_responder(hostname, ip))
         print(f"Connected as {hostname}.local under IP address {station.ifconfig()[0]}")
 
         return True
@@ -41,7 +43,7 @@ def inet_aton(ip_str):
     return bytes(map(int, ip_str.split('.')))
 
 # This function is partially AI generated (Gemini).
-def start_mdns_responder(hostname, ip_address):
+async def start_mdns_responder(hostname, ip_address):
     """
     Listens for UDP multicast queries on the network and responds
     if a host is looking for {hostname}.

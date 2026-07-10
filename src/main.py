@@ -6,7 +6,7 @@ from microdot import Microdot
 
 import bluetooth
 from Bluetooth import BluetoothScanner
-from connect_wifi import connect_wifi, start_mdns_responder
+from connect_wifi import connect_wifi
 
 # # Micropython does not use these import, so we just ignore. Types are stripped away anyway.
 # try:
