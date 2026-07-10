@@ -1,7 +1,6 @@
 import asyncio
 import json
 import random
-import time
 
 import config
 import network
@@ -9,6 +8,7 @@ from microdot import Microdot
 
 import bluetooth
 from Bluetooth import BluetoothScanner
+from connect_wifi import connect_wifi
 
 # # Micropython does not use these import, so we just ignore. Types are stripped away anyway.
 # try:
@@ -22,11 +22,12 @@ def generate_nanoid(length=21):
     return "".join(random.choice(alphabet) for _ in range(0, length))
 
 
-_BLE_SERVICE_UUID = bluetooth.UUID("19b10000-e8f2-537e-4f6c-d104768a1214")
 ble = bluetooth.BLE()
 ble.active(True)
 _, mac_bytes = ble.config("mac")
+
 DEVICE_MAC_ADDRESS = ":".join(f"{b:02X}" for b in mac_bytes)
+
 app = Microdot()
 
 _DEVICE_ID = generate_nanoid()
@@ -35,7 +36,7 @@ _DEVICE_ID = generate_nanoid()
 @app.route("/identify")
 async def identify(request):
     """
-    This api call is used to initially fetch data from this esp. With this, the host only needs to know the target ip address and we could even implement something elegant like [DAMN I FORGOT THE NAME, this thing where you send packages and it responds if it is the server wanted. mDNS?]
+    This api call is used to initially fetch data from this esp. With this, the host only needs to know the target ip address and we could even implement something elegant like mDNS?
     It does not expect any incoming parameter and sends own identifier (that is dynamically generated) and a bluetooth mac address.
     """
 
@@ -97,29 +98,6 @@ async def bluetooth_change(request):
 
 
 TARGET_BLUETOOTH_UUIDs = [bluetooth.UUID(0xAAAA)]
-
-
-def connect_wifi():
-    station = network.WLAN(network.STA_IF)
-    station.active(True)
-    station.connect(config.WIFI_NAME, config.WIFI_PASSWORD)
-
-    print("Connecting to wifi", config.WIFI_NAME)
-
-    # Wait for connection
-    timeout = 10
-    while not station.isconnected() and timeout > 0:
-        print("Timeout (try", 9 - timeout, "/ 10)")
-        time.sleep(1)
-        timeout -= 1
-
-    if station.isconnected():
-        print(f"connected to ${station.ifconfig()}")
-
-        return True
-    else:
-        print("Connection failed. Timeout reached")
-        return False
 
 
 # TODO: Setup https. Not sure if it matters, but we may send confidential data. Better safe than sorry, but not in MVP.
