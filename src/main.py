@@ -2,8 +2,6 @@ import asyncio
 import json
 import random
 
-import config
-import network
 from microdot import Microdot
 
 import bluetooth
