@@ -43,17 +43,55 @@ async def identify(request):
     return json.dumps({"deviceId": _DEVICE_ID, "bluetoothMac": DEVICE_MAC_ADDRESS})
 
 
-# TODO: Should we do this per technology? I think yes, but we should talk about this.
-@app.route("/wake-up")
-async def wake_up(request):
+@app.route("/bluetooth/wake-up")
+async def bluetooth_wake_up(request):
     """
-    This api call is done to wake up this device. A similar one, to update a device that is already woken up can be found here [NOT YET IMPLEMENTED].
+    URL: `/bluetooth/wake-up`
 
-    This expects to get the identifier of the device that should be tracked, the ip address of the device it should send the udp packages to, and, optionally, a bluetooth mac address.
+    This api call is done to wake up this device.
+    To update a device that is already woken, call `/bluetooth/switch-goal`.
+    To power off bluetooth, call `/bluetooth/sleep`.
+
+    This expects to get the IP address of the device it should send the udp packages to, and, optionally, a bluetooth mac address.
+    `{
+    "trackedDeviceMac": String
+    "hostIP": String
+    }`
     In turn, it starts streaming udp packages to the target ip address.
     """
 
     print("Whom woken up the ancient one?")
+
+    return None
+
+@app.route("/bluetooth/sleep")
+async def bluetooth_sleep(request):
+    """
+    URL: `/bluetooth/sleep`
+
+    This api call is done to power down bluetooth tracking.
+    To power on bluetooth, call `/bluetooth/wake-up`.
+
+    This call expects nothing, and returns nothing.
+    """
+
+    print("Whom woken up the ancient one?")
+
+    return None
+
+@app.route("/bluetooth/change")
+async def bluetooth_change(request):
+    """
+    URL: `/bluetooth/change`
+
+    This api call is used to update the current bluetooth tracking target.
+    To power on bluetooth, call `/bluetooth/wake-up`.
+    To power off bluetooth, call `/bluetooth/sleep`.
+
+
+    """
+
+    print("Whom changed the ancient one?")
 
     return None
 
