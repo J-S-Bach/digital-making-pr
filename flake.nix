@@ -57,7 +57,8 @@ with open('config.py', 'w') as f:
 
         # Custom script for the compile and upload command
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
-          esptool --chip esp32c6 --baud 460800 write_flash -z 0x0 ESP32_GENERIC_C6-20260406-v1.28.0.bin
+          esptool --chip esp32c6 --baud 460800 erase-flash
+          esptool --chip esp32c6 --baud 460800 write-flash -z 0x0 ESP32_GENERIC_C6-20260406-v1.28.0.bin
 
           install-microdot
           install-aioble
@@ -84,6 +85,7 @@ with open('config.py', 'w') as f:
         install-microdot = pkgs.writeShellScriptBin "install-microdot" ''
             echo "Installing microdot to connected device..."
 
+            mkdir fs :/lib
             mpremote fs mkdir :/lib/microdot
             mpremote fs cp ${microdot-src}/src/microdot/* :lib/microdot
 
@@ -110,9 +112,9 @@ with open('config.py', 'w') as f:
             echo "Exporting pythonpath with value ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs"
             export PYTHONPATH="$PYTHONPATH:${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs"
 
-            mkdir ./typings/
+            mkdir -p ./typings/
 
-            ln -s ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs/* ./typings/
+            ln -sf ${esp32Stubs}/publish/micropython-v1_28_0-esp32-stubs/* ./typings/
 
             # Generated with the power of AI (Googles Gemini)!
             # Symlink the generated .pyi stub to the current directory if it doesn't exist
