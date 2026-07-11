@@ -35,7 +35,7 @@ def discover_clients():
     except socket.timeout:
         print(f"Discovery finished. Found {len(devices)} devices:")
         for device in devices:
-            print(f"  - Name: {device['hostname']} | IP: {device['ipAddress']} | Bluetooth Mac {device['bluetoothMac']}")
+            print(f"  - Name: {device['hostname']} | IP: {device['ipAddress']} | Bluetooth Mac: {device['bluetoothMac']}")
 
 
     return devices

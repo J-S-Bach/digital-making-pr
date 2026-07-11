@@ -54,12 +54,15 @@ class BluetoothScanner:
         """
         Call this function to start scanning. Initially is not scanning!
         """
+        print("Started Bluetooth scanning for uuids")
         await self._scan()
 
     async def pause(self):
         """
         Call this function to pause. Initially is not scanning!
         """
+        print("Paused Bluetooth scanning for uuids")
+
         if self._active_scanner is not None:
             await self._active_scanner.cancel()
 

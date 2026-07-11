@@ -1,6 +1,6 @@
 import asyncio
 import json
-
+import select
 import bluetooth
 import config
 import network
@@ -65,6 +65,7 @@ async def start_mdns_responder(hostname, ip_address):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('', MDNS_PORT))
+    sock.setblocking(False)
 
     # Join the multicast group
     mreq = struct.pack('4s4s', inet_aton(MDNS_ADDR), inet_aton('0.0.0.0'))
@@ -72,15 +73,22 @@ async def start_mdns_responder(hostname, ip_address):
 
     print("mDNS Service Discovery active... Listening for '_esp32-tracker-discovery-service'")
 
-    while True:
-        try:
+    poller = select.poll()
+    poller.register(sock, select.POLLIN)
+
+    try:
+        # Check if data is ready without blocking the loop
+        if poller.poll(0):  # 0 ms timeout = instant check
             data, addr = sock.recvfrom(1024)
-            # Check if the incoming request contains our custom service type string
             if b'_esp32-tracker-discovery-service' in data:
-                # Send a simple target payload response back to the laptop
-                # In a production environment, you'd format a real DNS response,
-                # but a direct UDP reply back to the sender works beautifully for custom tools.
-                response = "ESP32-TRACKER-DISCOVERY-RESPONSE:" + json.dumps({"hostname": hostname, "ipAddress": ip_address, "bluetoothMac": DEVICE_MAC_ADDRESS})
+                response = "ESP32-TRACKER-DISCOVERY-RESPONSE:" + json.dumps({
+                    "hostname": hostname,
+                    "ipAddress": ip_address,
+                    "bluetoothMac": DEVICE_MAC_ADDRESS
+                })
                 sock.sendto(response.encode(), addr)
-        except Exception as e:
-            print("mDNS Error:", e)
+
+        # Yield control back to asyncio loop to let Bluetooth run
+        await asyncio.sleep_ms(100)
+    except Exception as e:
+        print(f"mDNS exception: {e}")

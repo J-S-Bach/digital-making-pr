@@ -43,7 +43,7 @@ async def identify(request):
     return json.dumps({"deviceId": _DEVICE_ID, "bluetoothMac": DEVICE_MAC_ADDRESS})
 
 
-@app.route("/bluetooth/wake-up", "POST")
+@app.route("/bluetooth/wake-up", "GET")
 async def bluetooth_wake_up(request):
     """
     URL: `/bluetooth/wake-up`
@@ -62,7 +62,7 @@ async def bluetooth_wake_up(request):
 
     print("Whom woken up the ancient one?")
 
-    return None
+    return 200
 
 @app.route("/bluetooth/sleep", "POST")
 async def bluetooth_sleep(request):
@@ -77,7 +77,7 @@ async def bluetooth_sleep(request):
 
     print("Whom woken up the ancient one?")
 
-    return None
+    return 200
 
 @app.route("/bluetooth/change", "POST")
 async def bluetooth_change(request):
@@ -93,7 +93,7 @@ async def bluetooth_change(request):
 
     print("Whom changed the ancient one?")
 
-    return None
+    return 200
 
 
 TARGET_BLUETOOTH_UUIDs = [bluetooth.UUID(0xAAAA)]
@@ -101,11 +101,15 @@ TARGET_BLUETOOTH_UUIDs = [bluetooth.UUID(0xAAAA)]
 
 # TODO: Setup https. Not sure if it matters, but we may send confidential data. Better safe than sorry, but not in MVP.
 async def setup_api_calls():
+    print("Started api server under port 80.")
     await app.start_server(port=80)
 
 
 async def main():
-    connect_wifi()
+    connected = connect_wifi()
+
+    if not connected:
+        raise Exception("Could not connect to wifi!")
 
     # Wait for api calls to update.
     asyncio.create_task(setup_api_calls())
@@ -114,7 +118,7 @@ async def main():
     other_esp_scanner = BluetoothScanner(TARGET_BLUETOOTH_UUIDs)
 
     def handleScanResult(id, rssi):
-        print(f"found result ${id} with rsso ${rssi}")
+        print(f"Found result ${id} with rsso ${rssi}")
 
     other_esp_scanner.subscribe(handleScanResult)
     asyncio.create_task(other_esp_scanner.start())
