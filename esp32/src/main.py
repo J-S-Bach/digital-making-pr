@@ -2,11 +2,12 @@ import asyncio
 import json
 import random
 
-from microdot import Microdot
+from microdot import Microdot, Request
 
 import bluetooth
 from Bluetooth import BluetoothScanner
 from connect_wifi import connect_wifi
+from send_udp import send_udp_package
 
 # # Micropython does not use these import, so we just ignore. Types are stripped away anyway.
 # try:
@@ -32,8 +33,8 @@ _DEVICE_ID = generate_nanoid()
 
 
 # Outdated due to mDNS discovery?
-@app.route("/identify", "POST")
-async def identify(request):
+@app.route("/identify", methods=["GET"])
+async def identify(request: Request):
     """
     This api call is used to initially fetch data from this esp. With this, the host only needs to know the target ip address and we could even implement something elegant like mDNS?
     It does not expect any incoming parameter and sends own identifier (that is dynamically generated) and a bluetooth mac address.
@@ -43,8 +44,32 @@ async def identify(request):
     return json.dumps({"deviceId": _DEVICE_ID, "bluetoothMac": DEVICE_MAC_ADDRESS})
 
 
-@app.route("/bluetooth/wake-up", "GET")
-async def bluetooth_wake_up(request):
+@app.route("/calibrate", methods=["POST"])
+async def calibrate(request: Request):
+    """
+    This API call tries to fetch the position of the other esp devices to allow an estimation of relative positions of each device.
+
+    Expects data of all other esp devices.
+    Returns estimated position data.
+    """
+
+    # Setup bluetooth scanning: Switch target bluetooth UUIDs to the mac adresses of the other esps. We need to be able to switch between mac address and UUID or send an own UUID per device.
+    other_esp_scanner = BluetoothScanner(TARGET_BLUETOOTH_UUIDs)
+
+    def handleScanResult(id, rssi, distance):
+        print(f"Found result ${id} with rsso ${rssi}")
+
+    other_esp_scanner.subscribe(handleScanResult)
+    asyncio.create_task(other_esp_scanner.start())
+
+
+current_bluetooth_scanner: BluetoothScanner | None = None
+
+
+# Is it useful to create a "shared" directory or custom package containing classes that define api calls and responses?
+# TODO: For release: Input sanitizing
+@app.route("/bluetooth/wake-up", methods=["POST"])
+async def bluetooth_wake_up(request: Request):
     """
     URL: `/bluetooth/wake-up`
 
@@ -52,20 +77,48 @@ async def bluetooth_wake_up(request):
     To update a device that is already woken, call `/bluetooth/switch-goal`.
     To power off bluetooth, call `/bluetooth/sleep`.
 
-    This expects to get the IP address of the device it should send the udp packages to, and, optionally, a bluetooth mac address.
+    This expects to get the IP address of the device it should send the udp packages to, and a trackedServiceSSID in th 0xaaaa (16-bit integer) representation, encoded as a string.
     `{
-    "trackedDeviceMac": String
-    "hostIP": String
+    "trackedServiceSSID": String
+    "host_address": String
     }`
     In turn, it starts streaming udp packages to the target ip address.
     """
 
-    print("Whom woken up the ancient one?")
+    # Setup bluetooth scanning
+
+    try:
+        body_string: bytes = request.body.decode()  # type: ignore
+
+        body = json.loads(body_string)
+
+    except Exception as e:
+        print(f"An error occurred during /bluetooth/wake-up: {e}")
+        return 500
+
+    encoded_uuid = int(body["trackedServiceSSID"], 16)
+
+    device_bluetooth_scanner = BluetoothScanner([bluetooth.UUID(encoded_uuid)])
+
+    def handle_bluetooth_device_discovery(
+        uuid: bluetooth.UUID, rssi: int, estimated_distance: float
+    ):
+        send_udp_package(
+            body["host_address"],
+            json_obj={
+                "technology": "BLUETOOTH",
+                "estimatedDistance": estimated_distance,
+            },
+        )
+
+    device_bluetooth_scanner.subscribe(handle_bluetooth_device_discovery)
+    asyncio.create_task(device_bluetooth_scanner.start())
 
     return 200
 
-@app.route("/bluetooth/sleep", "POST")
-async def bluetooth_sleep(request):
+
+@app.route("/bluetooth/sleep", methods=["POST"])
+async def bluetooth_sleep(request: Request):
     """
     URL: `/bluetooth/sleep`
 
@@ -75,12 +128,14 @@ async def bluetooth_sleep(request):
     This call expects nothing, and returns nothing.
     """
 
-    print("Whom woken up the ancient one?")
+    if current_bluetooth_scanner is not None:
+        await current_bluetooth_scanner.pause()
 
     return 200
 
-@app.route("/bluetooth/change", "POST")
-async def bluetooth_change(request):
+
+@app.route("/bluetooth/change", methods=["POST"])
+async def bluetooth_change(request: Request):
     """
     URL: `/bluetooth/change`
 
@@ -113,16 +168,6 @@ async def main():
 
     # Wait for api calls to update.
     asyncio.create_task(setup_api_calls())
-
-    # Setup bluetooth scanning
-    other_esp_scanner = BluetoothScanner(TARGET_BLUETOOTH_UUIDs)
-
-    def handleScanResult(id, rssi):
-        print(f"Found result ${id} with rsso ${rssi}")
-
-    other_esp_scanner.subscribe(handleScanResult)
-    asyncio.create_task(other_esp_scanner.start())
-
 
     # Keep application alive indefinetely
     while True:

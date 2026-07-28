@@ -1,13 +1,15 @@
 import asyncio
 import json
 import select
-import bluetooth
-import config
-import network
-import time
-import ubinascii
 import socket
 import struct
+import time
+
+import config
+import network
+import ubinascii
+
+import bluetooth
 
 ble = bluetooth.BLE()
 ble.active(True)
@@ -18,16 +20,14 @@ DEVICE_MAC_ADDRESS = ":".join(f"{b:02X}" for b in mac_bytes)
 def connect_wifi():
     station = network.WLAN(network.STA_IF)
 
-    wifi_mac = ubinascii.hexlify(station.config('mac')).decode()
+    wifi_mac = ubinascii.hexlify(station.config("mac")).decode()
     hostname = f"esp32-{wifi_mac[-6:]}"
     network.hostname(hostname)
-
 
     station.active(True)
     station.connect(config.WIFI_NAME, config.WIFI_PASSWORD)
 
     print(f'Trying to Connecting to wifi "{config.WIFI_NAME}"...')
-
 
     # Wait for connection
     timeout = 10
@@ -48,7 +48,8 @@ def connect_wifi():
 
 
 def inet_aton(ip_str):
-    return bytes(map(int, ip_str.split('.')))
+    return bytes(map(int, ip_str.split(".")))
+
 
 # This function is partially AI generated (Gemini).
 async def start_mdns_responder(hostname, ip_address):
@@ -58,37 +59,42 @@ async def start_mdns_responder(hostname, ip_address):
     """
 
     # Standard mDNS multicast group and port
-    MDNS_ADDR = '224.0.0.251'
-    MDNS_PORT = getattr(config, 'DISCOVERY_PORT', 6767)
+    MDNS_ADDR = "224.0.0.251"
+    MDNS_PORT = getattr(config, "DISCOVERY_PORT", 6767)
 
     # Create a UDP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(('', MDNS_PORT))
+    sock.bind(("", MDNS_PORT))
     sock.setblocking(False)
 
     # Join the multicast group
-    mreq = struct.pack('4s4s', inet_aton(MDNS_ADDR), inet_aton('0.0.0.0'))
+    mreq = struct.pack("4s4s", inet_aton(MDNS_ADDR), inet_aton("0.0.0.0"))
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
-    print("mDNS Service Discovery active... Listening for '_esp32-tracker-discovery-service'")
+    print(
+        "mDNS Service Discovery active... Listening for '_esp32-tracker-discovery-service'"
+    )
 
     poller = select.poll()
     poller.register(sock, select.POLLIN)
 
-    try:
-        # Check if data is ready without blocking the loop
-        if poller.poll(0):  # 0 ms timeout = instant check
-            data, addr = sock.recvfrom(1024)
-            if b'_esp32-tracker-discovery-service' in data:
-                response = "ESP32-TRACKER-DISCOVERY-RESPONSE:" + json.dumps({
-                    "hostname": hostname,
-                    "ipAddress": ip_address,
-                    "bluetoothMac": DEVICE_MAC_ADDRESS
-                })
-                sock.sendto(response.encode(), addr)
+    while True:
+        try:
+            # Check if data is ready without blocking the loop
+            if poller.poll(0):  # 0 ms timeout = instant check
+                data, addr = sock.recvfrom(1024)
+                if b"_esp32-tracker-discovery-service" in data:
+                    response = "ESP32-TRACKER-DISCOVERY-RESPONSE:" + json.dumps(
+                        {
+                            "hostname": hostname,
+                            "ipAddress": ip_address,
+                            "bluetoothMac": DEVICE_MAC_ADDRESS,
+                        }
+                    )
+                    sock.sendto(response.encode(), addr)
 
-        # Yield control back to asyncio loop to let Bluetooth run
-        await asyncio.sleep_ms(100)
-    except Exception as e:
-        print(f"mDNS exception: {e}")
+            # Yield control back to asyncio loop to let Bluetooth run
+            await asyncio.sleep(0.1)
+        except Exception as e:
+            print(f"mDNS exception: {e}")

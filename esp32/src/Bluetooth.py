@@ -22,7 +22,7 @@ class BluetoothScanner:
     """
 
     _active_scanner: scan | None = None
-    _subscriptions: List[Callable[[bluetooth.UUID, int], None]] = []
+    _subscriptions: List[Callable[[bluetooth.UUID, int, float]]] = []
 
     def __init__(
         self,
@@ -38,13 +38,13 @@ class BluetoothScanner:
         if N is not None:
             self.N = N
 
-    def subscribe(self, func: Callable[[bluetooth.UUID, int], None]):
+    def subscribe(self, func: Callable[[bluetooth.UUID, int, float]]):
         """
         Register a function here that should be called when a scan result has been found. If you want to only find a scan result once, use `unsubscribe` and / or `pause` to cancel it.
         """
         self._subscriptions.append(func)
 
-    def unsubscribe(self, func: Callable[[bluetooth.UUID, int], None]):
+    def unsubscribe(self, func: Callable[[bluetooth.UUID, int, float]]):
         """
         You need to provide the same function to cancel it. Take care of it!
         """
@@ -68,7 +68,7 @@ class BluetoothScanner:
 
     def _call_subscriptions(self, mac: bluetooth.UUID, rssi: int):
         for subscription in self._subscriptions:
-            subscription(mac, rssi)
+            subscription(mac, rssi, self._rssi_to_distance(rssi))
 
     # TODO: If you have too much time and motivation: Type onResultFound's first parameter to be of the type of the static ids given in the __init__
     async def _scan(
@@ -104,9 +104,6 @@ class BluetoothScanner:
                                 )
                             self._call_subscriptions(mac=uuid, rssi=int(result.rssi))
 
-    def _rssi_to_distance(self, rssi):
+    def _rssi_to_distance(self, rssi: int) -> float:
         """Converts a filtered RSSI value into an approximate distance in meters."""
-        try:
-            return 10 ** ((self.P0 - rssi) / (10 * self.N))
-        except Exception:
-            return None
+        return 10 ** ((self.P0 - rssi) / (10 * self.N))
