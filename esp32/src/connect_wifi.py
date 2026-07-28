@@ -17,11 +17,8 @@ _, mac_bytes = ble.config("mac")
 DEVICE_MAC_ADDRESS = ":".join(f"{b:02X}" for b in mac_bytes)
 
 
-def connect_wifi():
+def connect_wifi(device_id: str, hostname: str):
     station = network.WLAN(network.STA_IF)
-
-    wifi_mac = ubinascii.hexlify(station.config("mac")).decode()
-    hostname = f"esp32-{wifi_mac[-6:]}"
     network.hostname(hostname)
 
     station.active(True)
@@ -38,7 +35,7 @@ def connect_wifi():
 
     if station.isconnected():
         ip = station.ifconfig()[0]
-        asyncio.create_task(start_mdns_responder(hostname, ip))
+        asyncio.create_task(start_mdns_responder(hostname, device_id, ip))
         print(f"Connected as {hostname}.local under IP address {station.ifconfig()[0]}")
 
         return True
@@ -52,7 +49,7 @@ def inet_aton(ip_str):
 
 
 # This function is partially AI generated (Gemini).
-async def start_mdns_responder(hostname, ip_address):
+async def start_mdns_responder(hostname: str, device_id: str, ip_address):
     """
     Listens for UDP multicast queries on the network and responds
     if a host is looking for _esp32-tracker-discovery-service.
@@ -88,6 +85,7 @@ async def start_mdns_responder(hostname, ip_address):
                     response = "ESP32-TRACKER-DISCOVERY-RESPONSE:" + json.dumps(
                         {
                             "hostname": hostname,
+                            "deviceId": device_id,
                             "ipAddress": ip_address,
                             "bluetoothMac": DEVICE_MAC_ADDRESS,
                         }

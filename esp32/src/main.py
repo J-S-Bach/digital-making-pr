@@ -30,6 +30,7 @@ DEVICE_MAC_ADDRESS = ":".join(f"{b:02X}" for b in mac_bytes)
 app = Microdot()
 
 _DEVICE_ID = generate_nanoid()
+hostname = f"esp32-{DEVICE_MAC_ADDRESS[-6:]}"
 
 
 # Outdated due to mDNS discovery?
@@ -41,7 +42,13 @@ async def identify(request: Request):
     """
 
     # i guess we also need other identifiers?
-    return json.dumps({"deviceId": _DEVICE_ID, "bluetoothMac": DEVICE_MAC_ADDRESS})
+    return json.dumps(
+        {
+            "deviceId": _DEVICE_ID,
+            "hostname": hostname,
+            "bluetoothMac": DEVICE_MAC_ADDRESS,
+        }
+    )
 
 
 @app.route("/calibrate", methods=["POST"])
@@ -107,6 +114,7 @@ async def bluetooth_wake_up(request: Request):
             body["host_address"],
             json_obj={
                 "technology": "BLUETOOTH",
+                "deviceId": _DEVICE_ID,
                 "estimatedDistance": estimated_distance,
             },
         )
@@ -161,7 +169,7 @@ async def setup_api_calls():
 
 
 async def main():
-    connected = connect_wifi()
+    connected = connect_wifi(_DEVICE_ID, hostname)
 
     if not connected:
         raise Exception("Could not connect to wifi!")
