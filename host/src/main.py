@@ -1,29 +1,37 @@
+import asyncio
 import socket
+from asyncio import sleep
+
+from src.incoming_data_handler import TECHNOLOGY, EstimatedDistance, IncomingDataHandler
+from src.self_identification import get_own_ip
+from src.technology_handler import TechnologyHandler
+
 from .discover_clients import discover_clients
-import requests
 
 devices = discover_clients()
 
 UDP_PORT = 6969
-
-for device in devices:
-    try:
-
-        # Yeah this should be abstracted to something prettier. Maybe https? and also, disocver ip better.
-        local_hostname = socket.gethostname()
-        ip_addresses = socket.gethostbyname_ex(local_hostname)[2]
-        filtered_ips = [ip for ip in ip_addresses if not ip.startswith("127.")]
-        first_ip = filtered_ips[:1]
-
-        response = requests.post("http://" + device['ipAddress'] + "/bluetooth/wake-up", json={"trackedServiceSSID": "0xAAAA", "host_address": f"http://{first_ip[0]}:{UDP_PORT}"})
-
-    except Exception as e:
-        print(f"Unable to connect to {device['hostname']} due to {e}")
+own_ip = get_own_ip()
+target_udp_address = f"http://{own_ip}:{UDP_PORT}"
 
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-sock.bind(("0.0.0.0", UDP_PORT))
+async def main():
+    technology_handler = TechnologyHandler(devices, target_udp_address)
 
-while True:
-    data, addr = sock.recvfrom(1024)
-    print("received message: %s" % data)
+    technology_handler.activate_bluetooth()
+
+    data_handler = IncomingDataHandler(UDP_PORT)
+
+    def incoming_data_handler(
+        technology: TECHNOLOGY, estimated: EstimatedDistance
+    ) -> None:
+        print(f"received estimate of '{estimated} with technology {technology}'")
+
+    data_handler.subscribe(incoming_data_handler)
+    data_handler.start()
+
+    while True:
+        await sleep(1000)
+
+
+asyncio.run(main())

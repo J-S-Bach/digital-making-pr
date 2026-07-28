@@ -96,7 +96,6 @@ async def bluetooth_wake_up(request: Request):
 
     try:
         body_string: bytes = request.body.decode()  # type: ignore
-
         body = json.loads(body_string)
 
     except Exception as e:
@@ -121,7 +120,7 @@ async def bluetooth_wake_up(request: Request):
 
     device_bluetooth_scanner.subscribe(handle_bluetooth_device_discovery)
     asyncio.create_task(device_bluetooth_scanner.start())
-
+    print("Bluetooth woken up!")
     return 200
 
 

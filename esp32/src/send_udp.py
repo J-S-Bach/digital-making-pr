@@ -2,6 +2,10 @@ import json
 import socket
 
 
+class TECHNOLOGY:
+    BLUETOOTH = "BLUETOOTH"
+
+
 def send_udp_package(target_address: str, json_obj: dict[str, str | int | float]):
     try:
         json_str = json.dumps(json_obj)
@@ -13,3 +17,9 @@ def send_udp_package(target_address: str, json_obj: dict[str, str | int | float]
         print(f"Sent {json_str} to {target_address}.")
     except Exception as e:
         print(f"Error while sending udp package to {target_address}: {e}")
+
+
+def deliver_technology_report(
+    technology: TECHNOLOGY,
+):
+    pass
