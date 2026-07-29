@@ -25,7 +25,7 @@ class TechnologyHandler:
 
                 print("Activating Bluetooth...")
                 _ = requests.post(
-                    "http://" + device["ipAddress"] + "/bluetooth/wake-up",
+                    "http://" + device["ip_address"] + "/bluetooth/wake-up",
                     json={
                         "trackedServiceSSID": "0xAAAA",
                         "host_address": self.target_udp_address,
