@@ -32,6 +32,8 @@ class LiveEKFTracker:
 
         self.last_update_time: float = time.time()
 
+        print(f"Added sensors {self.scanners}")
+
     def _update_matrices_for_dt(self, dt: float):
         """Dynamically update F and Q for the actual elapsed time dt."""
 
@@ -87,6 +89,7 @@ class LiveEKFTracker:
                 active_positions.append(self.scanners[scanner_id])
                 averaged_z.append(np.mean(values))
                 scaled_variances.append(self.base_variance / N)
+                print("Found scanner and appended")
 
         if averaged_z:
             z = np.array(averaged_z)
@@ -100,6 +103,7 @@ class LiveEKFTracker:
                 args=(active_positions,),
                 hx_args=(active_positions,),
             )
+            print("ekf is updated!")
 
     def get_state(self) -> dict[str, float]:
         """Returns the current estimated position and velocity."""

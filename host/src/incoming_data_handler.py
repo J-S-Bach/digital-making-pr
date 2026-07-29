@@ -10,8 +10,11 @@ class TECHNOLOGY(Enum):
     BLUETOOTH = "BLUETOOTH"
 
 
-type EstimatedDistance = int
-type IncomingDataSubscription = Callable[[TECHNOLOGY, EstimatedDistance], None]
+type EstimatedDistance = float
+type DeviceId = str
+type IncomingDataSubscription = Callable[
+    [TECHNOLOGY, EstimatedDistance, DeviceId], None
+]
 
 
 class IncomingDataHandler:
@@ -41,7 +44,9 @@ class IncomingDataHandler:
                 received_data = json.loads(data.decode("utf-8"))
 
                 self._call_subscriptions(
-                    received_data["technology"], received_data["estimatedDistance"]
+                    received_data["technology"],
+                    received_data["estimatedDistance"],
+                    received_data["deviceId"],
                 )
         except Exception as e:
             print(f"Error receiving UDP packet: {e}")
@@ -55,7 +60,7 @@ class IncomingDataHandler:
         self.subscriptions.remove(func)
 
     def _call_subscriptions(
-        self, technology: TECHNOLOGY, estimated: EstimatedDistance
+        self, technology: TECHNOLOGY, estimated: EstimatedDistance, device_id: DeviceId
     ) -> None:
         for subscription in self.subscriptions:
-            subscription(technology, estimated)
+            subscription(technology, estimated, device_id)
