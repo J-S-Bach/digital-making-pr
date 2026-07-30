@@ -9,10 +9,11 @@ from numpy.typing import NDArray
 from src.incoming_data_handler import TECHNOLOGY, EstimatedDistance
 
 
-class Measurement(NamedTuple):
-    technology: TECHNOLOGY
-    estimated_distance: EstimatedDistance
-    device_id: str
+class EkfCorrection(NamedTuple):
+    x: float
+    vx: float
+    y: float
+    vy: float
 
 
 class LiveEKFTracker:
@@ -105,11 +106,11 @@ class LiveEKFTracker:
             )
             print("ekf is updated!")
 
-    def get_state(self) -> dict[str, float]:
+    def get_state(self) -> EkfCorrection:
         """Returns the current estimated position and velocity."""
-        return {
-            "x": float(self.ekf.x[0, 0]),
-            "vx": float(self.ekf.x[1, 0]),
-            "y": float(self.ekf.x[2, 0]),
-            "vy": float(self.ekf.x[3, 0]),
-        }
+        return EkfCorrection(
+            float(self.ekf.x[0, 0]),
+            float(self.ekf.x[1, 0]),
+            float(self.ekf.x[2, 0]),
+            float(self.ekf.x[3, 0]),
+        )

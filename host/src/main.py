@@ -1,7 +1,10 @@
 import asyncio
 import socket
 from asyncio import sleep
+from calendar import calendar
+from datetime import datetime
 
+from src.data_logger import DataLogger
 from src.estimation import LiveEKFTracker
 from src.incoming_data_handler import (
     TECHNOLOGY,
@@ -32,10 +35,38 @@ async def main():
     }
     ekf = LiveEKFTracker(device_positions)
 
+    ekf_logger = DataLogger(
+        [
+            "device_id",
+            "technology",
+            "input_data",
+            "ekf_estimation_x",
+            "ekf_estimation_xv",
+            "ekf_estimation_y",
+            "ekf_estimation_yv",
+            "timestamp",
+        ]
+    )
+
     def incoming_data_handler(
         technology: TECHNOLOGY, estimated: EstimatedDistance, device_id: DeviceId
     ) -> None:
         ekf.ingest_measurements({device_id: [estimated]})
+        ekf_estimation = ekf.get_state()
+
+        d = datetime.now().isoformat()
+        ekf_logger.write_data_point(
+            [
+                device_id,
+                str(technology),
+                estimated,
+                ekf_estimation.x,
+                ekf_estimation.vx,
+                ekf_estimation.y,
+                ekf_estimation.vy,
+                d,
+            ]
+        )
 
     data_handler.subscribe(incoming_data_handler)
     data_handler.start()
