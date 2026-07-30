@@ -33,24 +33,6 @@ _DEVICE_ID = generate_nanoid()
 hostname = f"esp32-{DEVICE_MAC_ADDRESS[-6:]}"
 
 
-# Outdated due to mDNS discovery?
-@app.route("/identify", methods=["GET"])
-async def identify(request: Request):
-    """
-    This api call is used to initially fetch data from this esp. With this, the host only needs to know the target ip address and we could even implement something elegant like mDNS?
-    It does not expect any incoming parameter and sends own identifier (that is dynamically generated) and a bluetooth mac address.
-    """
-
-    # i guess we also need other identifiers?
-    return json.dumps(
-        {
-            "deviceId": _DEVICE_ID,
-            "hostname": hostname,
-            "bluetoothMac": DEVICE_MAC_ADDRESS,
-        }
-    )
-
-
 @app.route("/calibrate", methods=["POST"])
 async def calibrate(request: Request):
     """

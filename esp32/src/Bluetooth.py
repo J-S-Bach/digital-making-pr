@@ -73,8 +73,6 @@ class BluetoothScanner:
     # TODO: If you have too much time and motivation: Type onResultFound's first parameter to be of the type of the static ids given in the __init__
     async def _scan(
         self,
-        # onResultFound: Callable[[str, int], None],
-        # continuously: bool | None = False,
     ):
         """
         Start a scan with the given ids (construction parameters).
