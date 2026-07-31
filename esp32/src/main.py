@@ -2,18 +2,13 @@ import asyncio
 import json
 import random
 
+import bluetooth
 from microdot import Microdot, Request
 
-import bluetooth
-from Bluetooth import BluetoothScanner
 from connect_wifi import connect_wifi
+from esp32_bluetooth.Advertiser import BluetoothAdvertiser
+from esp32_bluetooth.Scanner import BluetoothScanner
 from send_udp import send_udp_package
-
-# # Micropython does not use these import, so we just ignore. Types are stripped away anyway.
-# try:
-#     from typing import Callable, List
-# except ImportError:
-#     pass
 
 
 def generate_nanoid(length=21):
@@ -31,25 +26,74 @@ app = Microdot()
 
 _DEVICE_ID = generate_nanoid()
 hostname = f"esp32-{DEVICE_MAC_ADDRESS[-6:]}"
+bluetooth_advertiser = BluetoothAdvertiser()
+
+
+@app.route("/bluetooth-visibility/enable", methods=["POST"])
+async def bluetooth_visibility_enable(request: Request):
+
+    await bluetooth_advertiser.start_advertising()
+
+    return "Success", 200
+
+
+@app.route("/bluetooth-visibility/disable", methods=["POST"])
+async def bluetooth_visibility_disable(request: Request):
+    await bluetooth_advertiser.stop_advertising()
+
+    return "Success", 200
 
 
 @app.route("/calibrate", methods=["POST"])
 async def calibrate(request: Request):
     """
-    This API call tries to fetch the position of the other esp devices to allow an estimation of relative positions of each device.
+    This API call tries to fetch the position of the other esp devices to allow an estimation of relative positions of each device. Expects other devices not to move during calibration.
 
-    Expects data of all other esp devices.
-    Returns estimated position data.
+    Expects data of all other esp devices:
+        {
+            otherDeviceMacIds: [str]
+        }
+    Returns array of measurements:
+        [
+            {device_bluetooth_mac: str, estimated_lengths: [str]}
+        ]
     """
 
+    try:
+        body_string: bytes = request.body.decode()  # type: ignore
+        body = json.loads(body_string)
+
+    except Exception as e:
+        print(f"An error occurred during /bluetooth/wake-up: {e}")
+        return 500
+
+    print(f"Got calibration request for {body['otherDeviceMacIds']}")
     # Setup bluetooth scanning: Switch target bluetooth UUIDs to the mac adresses of the other esps. We need to be able to switch between mac address and UUID or send an own UUID per device.
-    other_esp_scanner = BluetoothScanner(TARGET_BLUETOOTH_UUIDs)
+    other_device_scanner = BluetoothScanner(
+        [],
+        body["otherDeviceMacIds"],
+    )
+
+    results = []
 
     def handleScanResult(id, rssi, distance):
-        print(f"Found result ${id} with rsso ${rssi}")
+        print(f"Found result {id} with rssi {rssi}")
+        results.append(distance)
 
-    other_esp_scanner.subscribe(handleScanResult)
-    asyncio.create_task(other_esp_scanner.start())
+        if len(results) > 10:
+
+            async def do_cancel():
+                scanning_task.cancel()
+
+            asyncio.create_task(
+                do_cancel()
+            )  # this schedules cancellation outside of this event loop.
+
+    other_device_scanner.subscribe(handleScanResult)
+
+    scanning_task = asyncio.create_task(other_device_scanner.start())
+
+    await scanning_task
 
 
 current_bluetooth_scanner: BluetoothScanner | None = None
@@ -67,12 +111,15 @@ async def bluetooth_wake_up(request: Request):
     To power off bluetooth, call `/bluetooth/sleep`.
 
     This expects to get the IP address of the device it should send the udp packages to, and a trackedServiceSSID in th 0xaaaa (16-bit integer) representation, encoded as a string.
+
     `{
     "trackedServiceSSID": String
     "host_address": String
     }`
+
     In turn, it starts streaming udp packages to the target ip address.
     """
+    global current_bluetooth_scanner
 
     # Setup bluetooth scanning
 
@@ -84,12 +131,15 @@ async def bluetooth_wake_up(request: Request):
         print(f"An error occurred during /bluetooth/wake-up: {e}")
         return 500
 
+    if current_bluetooth_scanner is not None:
+        return 204
+
     encoded_uuid = int(body["trackedServiceSSID"], 16)
 
-    device_bluetooth_scanner = BluetoothScanner([bluetooth.UUID(encoded_uuid)])
+    current_bluetooth_scanner = BluetoothScanner([bluetooth.UUID(encoded_uuid)])
 
     def handle_bluetooth_device_discovery(
-        uuid: bluetooth.UUID, rssi: int, estimated_distance: float
+        uuid: bluetooth.UUID | str, rssi: int, estimated_distance: float
     ):
         send_udp_package(
             body["host_address"],
@@ -100,9 +150,8 @@ async def bluetooth_wake_up(request: Request):
             },
         )
 
-    device_bluetooth_scanner.subscribe(handle_bluetooth_device_discovery)
-    asyncio.create_task(device_bluetooth_scanner.start())
-    print("Bluetooth woken up!")
+    current_bluetooth_scanner.subscribe(handle_bluetooth_device_discovery)
+    asyncio.create_task(current_bluetooth_scanner.start())
     return 200
 
 
@@ -116,9 +165,11 @@ async def bluetooth_sleep(request: Request):
 
     This call expects nothing, and returns nothing.
     """
+    global current_bluetooth_scanner
 
     if current_bluetooth_scanner is not None:
         await current_bluetooth_scanner.pause()
+        current_bluetooth_scanner = None
 
     return 200
 
@@ -131,16 +182,11 @@ async def bluetooth_change(request: Request):
     This api call is used to update the current bluetooth tracking target.
     To power on bluetooth, call `/bluetooth/wake-up`.
     To power off bluetooth, call `/bluetooth/sleep`.
-
-
     """
 
     print("Whom changed the ancient one?")
 
     return 200
-
-
-TARGET_BLUETOOTH_UUIDs = [bluetooth.UUID(0xAAAA)]
 
 
 # TODO: Setup https. Not sure if it matters, but we may send confidential data. Better safe than sorry, but not in MVP.
@@ -162,9 +208,5 @@ async def main():
     while True:
         await asyncio.sleep(1)
 
-
-# Allows to cancel
-# scan_task = asyncio.create_task(main())
-# scan_task.cancel()
 
 asyncio.run(main())

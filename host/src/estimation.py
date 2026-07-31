@@ -6,8 +6,6 @@ from filterpy.common import Q_discrete_white_noise
 from filterpy.kalman import ExtendedKalmanFilter
 from numpy.typing import NDArray
 
-from src.incoming_data_handler import TECHNOLOGY, EstimatedDistance
-
 
 class EkfCorrection(NamedTuple):
     x: float

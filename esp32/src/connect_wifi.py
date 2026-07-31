@@ -5,11 +5,9 @@ import socket
 import struct
 import time
 
+import bluetooth
 import config
 import network
-import ubinascii
-
-import bluetooth
 
 ble = bluetooth.BLE()
 ble.active(True)

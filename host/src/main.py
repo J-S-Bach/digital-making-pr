@@ -15,7 +15,7 @@ from src.incoming_data_handler import (
 from src.self_identification import get_own_ip
 from src.technology_handler import TechnologyHandler
 
-from .discover_clients import DeviceData, discover_clients
+from .discover_clients import discover_clients
 
 devices = discover_clients()
 
@@ -27,7 +27,7 @@ target_udp_address = f"http://{own_ip}:{UDP_PORT}"
 async def main():
     data_handler = IncomingDataHandler(UDP_PORT)
     technology_handler = TechnologyHandler(devices, target_udp_address)
-
+    technology_handler.calibrate_device_positions()
     technology_handler.activate_bluetooth()
 
     device_positions: dict[str, list[float]] = {

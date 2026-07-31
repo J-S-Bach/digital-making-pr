@@ -1,7 +1,6 @@
 import aioble
-from aioble.central import scan
-
 import bluetooth
+from aioble.central import ScanResult, scan
 
 try:
     from typing import Callable, List
@@ -10,7 +9,7 @@ except ImportError:
 
 
 class BluetoothScanner:
-    target_service_uuids: List[bluetooth.UUID] = []
+    target_service_uuids: list[bluetooth.UUID] = []
     # Subject to be set by calibration sequence - therefore updatable by __init__
     P0 = -75.0
     """
@@ -22,15 +21,17 @@ class BluetoothScanner:
     """
 
     _active_scanner: scan | None = None
-    _subscriptions: List[Callable[[bluetooth.UUID, int, float]]] = []
+    _subscriptions: list[Callable[[bluetooth.UUID | str, int, float]]] = []
 
     def __init__(
         self,
-        search_macs: List[bluetooth.UUID],
+        target_service_uuids: list[bluetooth.UUID] = [],
+        target_bluetooth_macs: list[str] = [],
         P0: int | None = None,
         N: int | None = None,
     ) -> None:
-        self.target_service_uuids = search_macs
+        self.target_service_uuids = target_service_uuids
+        self.target_bluetooth_macs = target_bluetooth_macs
 
         if P0 is not None:
             self.P0 = P0
@@ -38,13 +39,13 @@ class BluetoothScanner:
         if N is not None:
             self.N = N
 
-    def subscribe(self, func: Callable[[bluetooth.UUID, int, float]]):
+    def subscribe(self, func: Callable[[bluetooth.UUID | str, int, float]]):
         """
         Register a function here that should be called when a scan result has been found. If you want to only find a scan result once, use `unsubscribe` and / or `pause` to cancel it.
         """
         self._subscriptions.append(func)
 
-    def unsubscribe(self, func: Callable[[bluetooth.UUID, int, float]]):
+    def unsubscribe(self, func: Callable[[bluetooth.UUID | str, int, float]]):
         """
         You need to provide the same function to cancel it. Take care of it!
         """
@@ -54,19 +55,23 @@ class BluetoothScanner:
         """
         Call this function to start scanning. Initially is not scanning!
         """
-        print("Started Bluetooth scanning for uuids")
+        print(
+            f"Started Bluetooth scanning for uuids {', '.join(map(str, self.target_service_uuids))} and macs {', '.join(map(str, self.target_bluetooth_macs))}"
+        )
         await self._scan()
 
     async def pause(self):
         """
         Call this function to pause. Initially is not scanning!
         """
-        print("Paused Bluetooth scanning for uuids")
+        print(
+            f"Paused Bluetooth scanning for uuids {', '.join(map(str, self.target_service_uuids))}"
+        )
 
         if self._active_scanner is not None:
             await self._active_scanner.cancel()
 
-    def _call_subscriptions(self, mac: bluetooth.UUID, rssi: int):
+    def _call_subscriptions(self, mac: bluetooth.UUID | str, rssi: int):
         for subscription in self._subscriptions:
             subscription(mac, rssi, self._rssi_to_distance(rssi))
 
@@ -86,20 +91,31 @@ class BluetoothScanner:
             window_us=1280000,
             active=True,
         ) as scanner:
-            uuid_strings = [str(uuid) for uuid in self.target_service_uuids]
-            joined_uuids = ", ".join(uuid_strings)
-
-            print(f"Starting to scan for address(es) {joined_uuids}")
             self._active_scanner = scanner
 
             async for result in scanner:
+                # check if matching mac address
+                mac_hex = result.device.addr_hex()
+
+                for target_bluetooth_mac in self.target_bluetooth_macs:
+                    print(
+                        f"Found {mac_hex.lower()} | Wanted {target_bluetooth_mac.lower()} --> {mac_hex.lower() == target_bluetooth_mac.lower()}"
+                    )
+                    if mac_hex.lower() == target_bluetooth_mac.lower():
+                        print("should call subscription")
+                        assert result.rssi is not None, "No rssi provided from scan!"
+
+                        self._call_subscriptions(mac_hex, rssi=result.rssi)
+
+                # OR if matching service id!
                 for uuid in result.services():
                     for target_service_uuid in self.target_service_uuids:
                         if target_service_uuid == uuid:
                             if result.rssi is None:
-                                raise Exception(
-                                    f"No rssi provided from scan to ${target_service_uuid}!"
+                                assert result.rssi is not None, (
+                                    "No rssi provided from scan!"
                                 )
+
                             self._call_subscriptions(mac=uuid, rssi=int(result.rssi))
 
     def _rssi_to_distance(self, rssi: int) -> float:
