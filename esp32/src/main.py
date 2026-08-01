@@ -13,7 +13,7 @@ from send_udp import send_udp_package
 
 def generate_nanoid(length=21):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_- "
-    return "".join(random.choice(alphabet) for _ in range(0, length))
+    return "".join(random.choice(alphabet) for _ in range(length))
 
 
 ble = bluetooth.BLE()
@@ -81,9 +81,9 @@ async def calibrate(request: Request):
         body_string: bytes = request.body.decode()  # type: ignore
         body = json.loads(body_string)
 
-    except Exception as e:
-        print(f"An error occurred during /bluetooth/wake-up: {e}")
-        return 500
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        print(f"Invalid payload in /bluetooth/calibrate: {e}")
+        return 400
 
     print(f"Got calibration request for {body['otherDeviceMacIds']}")
     # Setup bluetooth scanning: Switch target bluetooth UUIDs to the mac adresses of the other esps. We need to be able to switch between mac address and UUID or send an own UUID per device.
@@ -100,14 +100,18 @@ async def calibrate(request: Request):
     def handle_scan_result(id: bluetooth.UUID | str, rssi: int, distance: float):
         print(f"Found result {id} with rssi {rssi}")
 
-        if type(id) is bluetooth.UUID:
-            raise Exception("Tried to use UUID for strict str id")
+        if isinstance(id, bluetooth.UUID):
+            raise TypeError("Tried to use UUID for strict str id")
 
-        for result in results:
-            if result.device_bluetooth_mac.lower() == id.lower():
-                result.estimated_distances.append(distance)
-            else:
-                raise Exception("Found distance for unkown bluetooth mac")
+        matching_result = next(
+            (res for res in results if res.device_bluetooth_mac.lower() == id.lower()),
+            None,
+        )
+
+        if matching_result:
+            matching_result.estimated_distances.append(distance)
+        else:
+            raise ValueError(f"Found distance for unknown bluetooth mac: {id}")
 
         individual_device_found_distances_list_length = [
             len(result.estimated_distances) for result in results
@@ -173,9 +177,9 @@ async def bluetooth_wake_up(request: Request):
         body_string: bytes = request.body.decode()  # type: ignore
         body = json.loads(body_string)
 
-    except Exception as e:
-        print(f"An error occurred during /bluetooth/wake-up: {e}")
-        return 500
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        print(f"Invalid payload in /bluetooth/wake-up: {e}")
+        return 400
 
     if current_bluetooth_scanner is not None:
         return 204
@@ -245,7 +249,7 @@ async def main():
     connected = connect_wifi(_DEVICE_ID, hostname)
 
     if not connected:
-        raise Exception("Could not connect to wifi!")
+        raise ConnectionError("Could not connect to wifi!")
 
     # Wait for api calls to update.
     asyncio.create_task(setup_api_calls())

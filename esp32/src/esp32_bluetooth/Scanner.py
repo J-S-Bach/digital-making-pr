@@ -1,15 +1,14 @@
 import aioble
 import bluetooth
-from aioble.central import ScanResult, scan
+from aioble.central import scan
 
 try:
-    from typing import Callable, List
+    from collections.abc import Callable
 except ImportError:
     pass
 
 
 class BluetoothScanner:
-    target_service_uuids: list[bluetooth.UUID] = []
     # Subject to be set by calibration sequence - therefore updatable by __init__
     P0 = -75.0
     """
@@ -20,18 +19,22 @@ class BluetoothScanner:
     Environmental path loss factor (2.0 = open, 3.0+ = heavy walls)
     """
 
-    _active_scanner: scan | None = None
-    _subscriptions: list[Callable[[bluetooth.UUID | str, int, float]]] = []
-
     def __init__(
         self,
-        target_service_uuids: list[bluetooth.UUID] = [],
-        target_bluetooth_macs: list[str] = [],
-        P0: int | None = None,
-        N: int | None = None,
+        target_service_uuids: list[bluetooth.UUID] | None = None,
+        target_bluetooth_macs: list[str] | None = None,
+        P0: float | None = None,
+        N: float | None = None,
     ) -> None:
-        self.target_service_uuids = target_service_uuids
-        self.target_bluetooth_macs = target_bluetooth_macs
+        self._active_scanner: scan | None = None
+        self._subscriptions: list[Callable[[bluetooth.UUID | str, int, float]]] = []
+
+        self.target_service_uuids = (
+            target_service_uuids if target_service_uuids is not None else []
+        )
+        self.target_bluetooth_macs = (
+            target_bluetooth_macs if target_bluetooth_macs is not None else []
+        )
 
         if P0 is not None:
             self.P0 = P0
