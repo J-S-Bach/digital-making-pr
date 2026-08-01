@@ -97,11 +97,13 @@ async def calibrate(request: Request):
         for bluetooth_mac_id in body["otherDeviceMacIds"]
     ]
 
-    def handleScanResult(id, rssi, distance):
+    def handle_scan_result(id: bluetooth.UUID | str, rssi: int, distance: float):
         print(f"Found result {id} with rssi {rssi}")
 
+        if type(id) is bluetooth.UUID:
+            raise Exception("Tried to use UUID for strict str id")
+
         for result in results:
-            print(result.device_bluetooth_mac.lower(), id.lower())
             if result.device_bluetooth_mac.lower() == id.lower():
                 result.estimated_distances.append(distance)
             else:
@@ -126,7 +128,7 @@ async def calibrate(request: Request):
                 do_cancel()
             )  # this schedules cancellation outside of this event loop.
 
-    other_device_scanner.subscribe(handleScanResult)
+    other_device_scanner.subscribe(handle_scan_result)
 
     scanning_task = asyncio.create_task(other_device_scanner.start())
 

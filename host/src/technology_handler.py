@@ -1,5 +1,4 @@
 import atexit
-import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import NamedTuple
 
@@ -9,16 +8,14 @@ from src.discover_clients import DeviceData
 
 
 # ADD POSSIBLE NEW TECHNOLOGIES HERE TO RECEIVE THEM! REGISTER THEM INTO THE EXISTING SUBSCRIPTIONS TO ALLOW FURTHER PROCESSING.
-# TODO: Think of better name
-class OtherDeviceDistances(NamedTuple):
-    device_mac: str
-    estimated_distance: list[float]
+class PeerDistanceMeasurement(NamedTuple):
+    target_device: DeviceData
+    distances: list[float]
 
 
-# TODO: Think of better name
-class ClientPositionEstimations(NamedTuple):
-    device: DeviceData
-    estimated_distances: list[OtherDeviceDistances]
+class NodeCalibrationData(NamedTuple):
+    source_device: DeviceData
+    peer_measurements: list[PeerDistanceMeasurement]
 
 
 class TechnologyHandler:
@@ -62,7 +59,7 @@ class TechnologyHandler:
     def calibrate_device_positions(self):
         if len(self.tracking_devices) > 1:
             self.activate_all_device_visibility()
-            clients_positions_estimations: list[ClientPositionEstimations] = []
+            clients_positions_estimations: list[NodeCalibrationData] = []
 
             for device in self.tracking_devices:
                 other_devices = filter(
@@ -73,27 +70,29 @@ class TechnologyHandler:
                 other_bluetooth_macs = [
                     device["bluetooth_mac"] for device in other_devices
                 ]
-                print(f"Sending calibration command to {device['hostname']}")
-                # TODO: Return posts
+                print(f"Sending calibration command to {device['hostname']}...")
                 response = requests.post(
                     "http://" + device["ip_address"] + "/calibrate",
                     json={"otherDeviceMacIds": other_bluetooth_macs},
                 )
 
-                print(response.json())
-
                 other_devices_distances = [
-                    OtherDeviceDistances(
-                        device_mac=json_response["device_bluetooth_mac"],
-                        estimated_distance=json_response["estimated_distances"],
+                    PeerDistanceMeasurement(
+                        target_device=next(
+                            dev
+                            for dev in self.tracking_devices
+                            if dev["bluetooth_mac"]
+                            == json_response["device_bluetooth_mac"]
+                        ),
+                        distances=json_response["estimated_distances"],
                     )
-                    for json_response in (response.json())
+                    for json_response in response.json()
                 ]
 
                 clients_positions_estimations.append(
-                    ClientPositionEstimations(
-                        device=device,
-                        estimated_distances=other_devices_distances,
+                    NodeCalibrationData(
+                        source_device=device,
+                        peer_measurements=other_devices_distances,
                     )
                 )
 

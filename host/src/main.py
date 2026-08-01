@@ -4,6 +4,7 @@ from asyncio import sleep
 from calendar import calendar
 from datetime import datetime
 
+from src.calculate_relative_positions import fuse_n_nodes_inverse_variance
 from src.data_logger import DataLogger
 from src.estimation import LiveEKFTracker
 from src.incoming_data_handler import (
@@ -30,7 +31,8 @@ async def main():
     other_device_estimations = technology_handler.calibrate_device_positions()
     technology_handler.activate_bluetooth()
 
-    print(other_device_estimations)
+    if other_device_estimations is not None:
+        print(fuse_n_nodes_inverse_variance(other_device_estimations))
 
     device_positions: dict[str, list[float]] = {
         x["device_id"]: [0.1, 0.1] for x in devices
