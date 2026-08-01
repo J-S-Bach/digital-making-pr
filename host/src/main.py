@@ -27,8 +27,10 @@ target_udp_address = f"http://{own_ip}:{UDP_PORT}"
 async def main():
     data_handler = IncomingDataHandler(UDP_PORT)
     technology_handler = TechnologyHandler(devices, target_udp_address)
-    technology_handler.calibrate_device_positions()
+    other_device_estimations = technology_handler.calibrate_device_positions()
     technology_handler.activate_bluetooth()
+
+    print(other_device_estimations)
 
     device_positions: dict[str, list[float]] = {
         x["device_id"]: [0.1, 0.1] for x in devices

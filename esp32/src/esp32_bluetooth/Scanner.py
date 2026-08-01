@@ -98,11 +98,7 @@ class BluetoothScanner:
                 mac_hex = result.device.addr_hex()
 
                 for target_bluetooth_mac in self.target_bluetooth_macs:
-                    print(
-                        f"Found {mac_hex.lower()} | Wanted {target_bluetooth_mac.lower()} --> {mac_hex.lower() == target_bluetooth_mac.lower()}"
-                    )
                     if mac_hex.lower() == target_bluetooth_mac.lower():
-                        print("should call subscription")
                         assert result.rssi is not None, "No rssi provided from scan!"
 
                         self._call_subscriptions(mac_hex, rssi=result.rssi)

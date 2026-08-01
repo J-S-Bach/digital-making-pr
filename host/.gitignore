@@ -7,3 +7,5 @@ __pycache__
 
 # Do not upload sensor data.
 tracker
+
+.DS_Store

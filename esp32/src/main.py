@@ -44,6 +44,17 @@ async def bluetooth_visibility_disable(request: Request):
     return "Success", 200
 
 
+class CalibrationResult:
+    def __init__(
+        self, device_bluetooth_mac: str, estimated_distances: list[float]
+    ) -> None:
+        self.device_bluetooth_mac = device_bluetooth_mac
+        self.estimated_distances = estimated_distances
+
+    device_bluetooth_mac: str
+    estimated_distances: list[float]
+
+
 @app.route("/calibrate", methods=["POST"])
 async def calibrate(request: Request):
     """
@@ -55,7 +66,7 @@ async def calibrate(request: Request):
         }
     Returns array of measurements:
         [
-            {device_bluetooth_mac: str, estimated_lengths: [str]}
+            {device_bluetooth_mac: str, estimated_distances: [float]}
         ]
     """
 
@@ -74,15 +85,35 @@ async def calibrate(request: Request):
         body["otherDeviceMacIds"],
     )
 
-    results = []
+    # [{"device_bluetooth_mac": str, "estimated_distances": [float]}]
+    results = [
+        CalibrationResult(device_bluetooth_mac=bluetooth_mac_id, estimated_distances=[])
+        for bluetooth_mac_id in body["otherDeviceMacIds"]
+    ]
 
     def handleScanResult(id, rssi, distance):
         print(f"Found result {id} with rssi {rssi}")
-        results.append(distance)
 
-        if len(results) > 10:
+        for result in results:
+            print(result.device_bluetooth_mac.lower(), id.lower())
+            if result.device_bluetooth_mac.lower() == id.lower():
+                result.estimated_distances.append(distance)
+            else:
+                raise Exception("Found distance for unkown bluetooth mac")
+
+        individual_device_found_distances_list_length = [
+            len(result.estimated_distances) for result in results
+        ]
+
+        are_all_devices_found_more_than_10_times = all(
+            x <= 10 for x in individual_device_found_distances_list_length
+        )
+
+        # TODO: Also set a timeout if one other device is not reachable!
+        if are_all_devices_found_more_than_10_times:
 
             async def do_cancel():
+                print("Ending scanning for calibration sequence...")
                 scanning_task.cancel()
 
             asyncio.create_task(
@@ -94,6 +125,10 @@ async def calibrate(request: Request):
     scanning_task = asyncio.create_task(other_device_scanner.start())
 
     await scanning_task
+
+    print(f"Sending {results}")
+
+    return 200, results
 
 
 current_bluetooth_scanner: BluetoothScanner | None = None
