@@ -54,6 +54,12 @@ class CalibrationResult:
     device_bluetooth_mac: str
     estimated_distances: list[float]
 
+    def to_map(self):
+        return {
+            "device_bluetooth_mac": self.device_bluetooth_mac,
+            "estimated_distances": self.estimated_distances,
+        }
+
 
 @app.route("/calibrate", methods=["POST"])
 async def calibrate(request: Request):
@@ -69,6 +75,7 @@ async def calibrate(request: Request):
             {device_bluetooth_mac: str, estimated_distances: [float]}
         ]
     """
+    print("Starting calibration sequence...")
 
     try:
         body_string: bytes = request.body.decode()  # type: ignore
@@ -85,7 +92,6 @@ async def calibrate(request: Request):
         body["otherDeviceMacIds"],
     )
 
-    # [{"device_bluetooth_mac": str, "estimated_distances": [float]}]
     results = [
         CalibrationResult(device_bluetooth_mac=bluetooth_mac_id, estimated_distances=[])
         for bluetooth_mac_id in body["otherDeviceMacIds"]
@@ -106,7 +112,7 @@ async def calibrate(request: Request):
         ]
 
         are_all_devices_found_more_than_10_times = all(
-            x <= 10 for x in individual_device_found_distances_list_length
+            x >= 10 for x in individual_device_found_distances_list_length
         )
 
         # TODO: Also set a timeout if one other device is not reachable!
@@ -124,11 +130,14 @@ async def calibrate(request: Request):
 
     scanning_task = asyncio.create_task(other_device_scanner.start())
 
-    await scanning_task
+    try:
+        await scanning_task
+    except asyncio.CancelledError:
+        print("Scan task was cancelled as expected.")
 
-    print(f"Sending {results}")
+    print(f"Sending {[result.to_map() for result in results]}")
 
-    return 200, results
+    return json.dumps([result.to_map() for result in results]), 200
 
 
 current_bluetooth_scanner: BluetoothScanner | None = None

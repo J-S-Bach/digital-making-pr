@@ -1,4 +1,5 @@
 import atexit
+import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import NamedTuple
 
@@ -64,26 +65,29 @@ class TechnologyHandler:
             clients_positions_estimations: list[ClientPositionEstimations] = []
 
             for device in self.tracking_devices:
-                other_devices = filter(lambda x: True, self.tracking_devices)
+                other_devices = filter(
+                    lambda device_to_track: device_to_track is not device,
+                    self.tracking_devices,
+                )
 
                 other_bluetooth_macs = [
                     device["bluetooth_mac"] for device in other_devices
                 ]
                 print(f"Sending calibration command to {device['hostname']}")
                 # TODO: Return posts
-                res = requests.post(
+                response = requests.post(
                     "http://" + device["ip_address"] + "/calibrate",
                     json={"otherDeviceMacIds": other_bluetooth_macs},
                 )
 
-                print(res.content.decode())
+                print(response.json())
 
                 other_devices_distances = [
                     OtherDeviceDistances(
-                        device_mac=res["device_bluetooth_mac"],
-                        estimated_distance=res["estimated_distances"],
+                        device_mac=json_response["device_bluetooth_mac"],
+                        estimated_distance=json_response["estimated_distances"],
                     )
-                    for res in res.json()
+                    for json_response in (response.json())
                 ]
 
                 clients_positions_estimations.append(
