@@ -3,6 +3,7 @@ import json
 import socket
 from collections.abc import Callable
 from enum import Enum
+from typing import TypedDict, cast
 
 
 # Correct enum import from standard library
@@ -17,7 +18,13 @@ type IncomingDataSubscription = Callable[
 ]
 
 
-class IncomingDataHandler:
+class DistancePayloadDict(TypedDict):
+    technology: TECHNOLOGY
+    estimatedDistance: EstimatedDistance
+    deviceId: DeviceId
+
+
+class UDPCatcher:
     def __init__(self, udp_port: int) -> None:
         self.udp_port: int = udp_port
         self.subscriptions: list[IncomingDataSubscription] = []
@@ -36,20 +43,26 @@ class IncomingDataHandler:
         sock.bind(("0.0.0.0", self.udp_port))
 
         loop = asyncio.get_running_loop()
-
         try:
-            while True:
-                # Async read without blocking the event loop
-                data, _ = await loop.sock_recvfrom(sock, 1024)
-                received_data = json.loads(data.decode("utf-8"))
+            try:
+                while True:
+                    # Async read without blocking the event loop
+                    data: bytes = (await loop.sock_recvfrom(sock, 1024))[0]
+                    received_data = cast(
+                        DistancePayloadDict, json.loads(data.decode("utf-8"))
+                    )
 
-                self._call_subscriptions(
-                    received_data["technology"],
-                    received_data["estimatedDistance"],
-                    received_data["deviceId"],
-                )
-        except Exception as e:
-            print(f"Error receiving UDP packet: {e}")
+                    self._call_subscriptions(
+                        received_data["technology"],
+                        received_data["estimatedDistance"],
+                        received_data["deviceId"],
+                    )
+            except (UnicodeDecodeError, json.JSONDecodeError, KeyError) as e:
+                print(f"Skipping malformed UDP packet: {e}")
+            finally:
+                sock.close()
+        except OSError as e:
+            print(f"UDP Socket error: {e}")
         finally:
             sock.close()
 

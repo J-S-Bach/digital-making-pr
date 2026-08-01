@@ -149,7 +149,6 @@ async def calibrate(request: Request):
 current_bluetooth_scanner: BluetoothScanner | None = None
 
 
-# Is it useful to create a "shared" directory or custom package containing classes that define api calls and responses?
 # TODO: For release: Input sanitizing
 @app.route("/bluetooth/wake-up", methods=["POST"])
 async def bluetooth_wake_up(request: Request):

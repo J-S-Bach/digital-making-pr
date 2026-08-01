@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import NamedTuple, TypedDict
+from typing import NamedTuple
 
 import numpy as np
 
@@ -19,6 +19,12 @@ class Measurement(NamedTuple):
     entry: NodeStats
 
 
+class FusedVarianceData(NamedTuple):
+    fused_distance_m: float
+    total_nodes: int
+    node_stats: dict[str, dict[str, NodeStats]]
+
+
 # This is called N-Node Inverse-Variance Weighting. Include and explain this in report. Basically, the more variance the measurement has, the less it gets used for the average. easy peasy. https://en.wikipedia.org/wiki/Inverse-variance_weighting
 
 
@@ -30,7 +36,9 @@ def filter_iqr(data: np.ndarray) -> np.ndarray:
     return filtered if len(filtered) > 0 else data
 
 
-def fuse_n_nodes_inverse_variance(node_data: list[NodeCalibrationData]):
+def fuse_n_nodes_inverse_variance(
+    node_data: list[NodeCalibrationData],
+) -> FusedVarianceData:
     """Fuses pre-calculated distance arrays from N static ESP32 nodes."""
     stats: dict[str, dict[str, NodeStats]] = {}
     measurements: list[Measurement] = []
@@ -40,7 +48,7 @@ def fuse_n_nodes_inverse_variance(node_data: list[NodeCalibrationData]):
         stats[source_device_id] = {}
 
         for target in node.peer_measurements:
-            tgt_mac = target.target_device["bluetooth_mac"]
+            target_device_id = target.target_device["device_id"]
 
             arr = filter_iqr(np.array(target.distances, dtype=float))
             mean = float(np.mean(arr))
@@ -53,12 +61,12 @@ def fuse_n_nodes_inverse_variance(node_data: list[NodeCalibrationData]):
                 weight=0.0,
             )
 
-            stats[source_device_id][tgt_mac] = entry
+            stats[source_device_id][target_device_id] = entry
 
             measurements.append(Measurement(entry=entry, inv_var=inv_var, mean=mean))
 
     if not measurements:
-        return {"fused_distance_m": 0.0, "total_nodes": 0, "node_stats": {}}
+        return FusedVarianceData(fused_distance_m=0, node_stats={}, total_nodes=0)
 
     # 2. Compute weights and final fused distance
     total_inv_var = sum(m.inv_var for m in measurements)
@@ -69,8 +77,8 @@ def fuse_n_nodes_inverse_variance(node_data: list[NodeCalibrationData]):
         m.entry.weight = round(weight, 3)
         fused_distance += m.mean * weight
 
-    return {
-        "fused_distance_m": round(fused_distance, 3),
-        "total_nodes": len(node_data),
-        "node_stats": stats,
-    }
+    return FusedVarianceData(
+        fused_distance_m=round(fused_distance, 3),
+        total_nodes=len(node_data),
+        node_stats=stats,
+    )

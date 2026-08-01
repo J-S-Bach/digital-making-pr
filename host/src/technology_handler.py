@@ -71,6 +71,7 @@ class TechnologyHandler:
                     device["bluetooth_mac"] for device in other_devices
                 ]
                 print(f"Sending calibration command to {device['hostname']}...")
+
                 response = requests.post(
                     "http://" + device["ip_address"] + "/calibrate",
                     json={"otherDeviceMacIds": other_bluetooth_macs},
@@ -114,7 +115,7 @@ class TechnologyHandler:
                     },
                 )
 
-            except Exception as e:
+            except ConnectionError as e:
                 print(f"Unable to connect to {device['hostname']} due to {e}")
 
     def disable_bluetooth(self):
@@ -127,5 +128,5 @@ class TechnologyHandler:
                     "http://" + device["ip_address"] + "/bluetooth/sleep",
                 )
 
-            except Exception as e:
+            except ConnectionError as e:
                 print(f"Unable to connect to {device['hostname']} due to {e}")

@@ -32,7 +32,7 @@ def discover_clients():
     devices: list[DeviceData] = []
     try:
         while True:
-            data, addr = sock.recvfrom(1024)
+            data = (sock.recvfrom(1024))[0]
             msg = data.decode()
             if msg.startswith("ESP32-TRACKER-DISCOVERY-RESPONSE:"):
                 _, json_object = msg.split(":", 1)
@@ -45,7 +45,7 @@ def discover_clients():
                         "device_id": res["deviceId"],
                     }
                 )
-    except socket.timeout:
+    except TimeoutError:
         print(f"Discovery finished. Found {len(devices)} devices:")
         for device in devices:
             print(

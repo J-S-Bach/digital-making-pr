@@ -1,8 +1,6 @@
 import asyncio
-import socket
 from asyncio import sleep
-from calendar import calendar
-from datetime import datetime
+from datetime import UTC, datetime
 
 from src.calculate_relative_positions import fuse_n_nodes_inverse_variance
 from src.data_logger import DataLogger
@@ -11,7 +9,7 @@ from src.incoming_data_handler import (
     TECHNOLOGY,
     DeviceId,
     EstimatedDistance,
-    IncomingDataHandler,
+    UDPCatcher,
 )
 from src.self_identification import get_own_ip
 from src.technology_handler import TechnologyHandler
@@ -26,7 +24,7 @@ target_udp_address = f"http://{own_ip}:{UDP_PORT}"
 
 
 async def main():
-    data_handler = IncomingDataHandler(UDP_PORT)
+    data_handler = UDPCatcher(UDP_PORT)
     technology_handler = TechnologyHandler(devices, target_udp_address)
     other_device_estimations = technology_handler.calibrate_device_positions()
     technology_handler.activate_bluetooth()
@@ -58,7 +56,7 @@ async def main():
         ekf.ingest_measurements({device_id: [estimated]})
         ekf_estimation = ekf.get_state()
 
-        d = datetime.now().isoformat()
+        d = datetime.now(UTC).isoformat()
         ekf_logger.write_data_point(
             [
                 device_id,
