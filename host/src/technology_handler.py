@@ -36,8 +36,7 @@ class TechnologyHandler:
             response.raise_for_status()
 
         urls = [
-            ("http://" + device["ip_address"] + path)
-            for device in self.tracking_devices
+            ("http://" + device.ip_address + path) for device in self.tracking_devices
         ]
 
         try:
@@ -56,7 +55,7 @@ class TechnologyHandler:
     def deactivate_all_device_visibility(self):
         _ = self._post_for_all_devices("/bluetooth-visibility/disable")
 
-    def calibrate_device_positions(self):
+    def scan_device_positions(self):
         if len(self.tracking_devices) > 1:
             self.activate_all_device_visibility()
             clients_positions_estimations: list[NodeCalibrationData] = []
@@ -68,21 +67,23 @@ class TechnologyHandler:
                 )
 
                 other_bluetooth_macs = [
-                    device["bluetooth_mac"] for device in other_devices
+                    device.bluetooth_mac for device in other_devices
                 ]
-                print(f"Sending calibration command to {device['hostname']}...")
+                print(f"Sending calibration command to {device.hostname}...")
 
                 response = requests.post(
-                    "http://" + device["ip_address"] + "/calibrate",
+                    "http://" + device.ip_address + "/calibrate",
                     json={"otherDeviceMacIds": other_bluetooth_macs},
                 )
+
+                print(f"Got Response of {response.json()}")
 
                 other_devices_distances = [
                     PeerDistanceMeasurement(
                         target_device=next(
                             dev
                             for dev in self.tracking_devices
-                            if dev["bluetooth_mac"]
+                            if dev.bluetooth_mac
                             == json_response["device_bluetooth_mac"]
                         ),
                         distances=json_response["estimated_distances"],
@@ -108,7 +109,7 @@ class TechnologyHandler:
 
                 print("Activating Bluetooth...")
                 _ = requests.post(
-                    "http://" + device["ip_address"] + "/bluetooth/wake-up",
+                    "http://" + device.ip_address + "/bluetooth/wake-up",
                     json={
                         "trackedServiceSSID": "0xAAAA",
                         "host_address": self.target_udp_address,
@@ -116,7 +117,7 @@ class TechnologyHandler:
                 )
 
             except ConnectionError as e:
-                print(f"Unable to connect to {device['hostname']} due to {e}")
+                print(f"Unable to connect to {device.hostname} due to {e}")
 
     def disable_bluetooth(self):
         for device in self.tracking_devices:
@@ -125,8 +126,8 @@ class TechnologyHandler:
 
                 print("Disabling Bluetooth...")
                 _ = requests.post(
-                    "http://" + device["ip_address"] + "/bluetooth/sleep",
+                    "http://" + device.ip_address + "/bluetooth/sleep",
                 )
 
             except ConnectionError as e:
-                print(f"Unable to connect to {device['hostname']} due to {e}")
+                print(f"Unable to connect to {device.hostname} due to {e}")

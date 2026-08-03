@@ -1,10 +1,14 @@
 import asyncio
 from asyncio import sleep
 from datetime import UTC, datetime
+from typing import NamedTuple
 
-from src.calculate_relative_positions import fuse_n_nodes_inverse_variance
+from src.calculate_relative_positions import (
+    fuse_n_nodes_inverse_variance,
+    generate_device_positions,
+)
 from src.data_logger import DataLogger
-from src.estimation import LiveEKFTracker
+from src.estimation import DevicePosition, LiveEKFTracker, Position
 from src.incoming_data_handler import (
     TECHNOLOGY,
     DeviceId,
@@ -14,7 +18,7 @@ from src.incoming_data_handler import (
 from src.self_identification import get_own_ip
 from src.technology_handler import TechnologyHandler
 
-from .discover_clients import discover_clients
+from .discover_clients import DeviceData, discover_clients
 
 devices = discover_clients()
 
@@ -24,17 +28,31 @@ target_udp_address = f"http://{own_ip}:{UDP_PORT}"
 
 
 async def main():
+    if len(devices) == 0:
+        print("No Device Could be found...")
+        return
+
     data_handler = UDPCatcher(UDP_PORT)
+
     technology_handler = TechnologyHandler(devices, target_udp_address)
-    other_device_estimations = technology_handler.calibrate_device_positions()
+
+    position_estimations = technology_handler.scan_device_positions()
+
     technology_handler.activate_bluetooth()
 
-    if other_device_estimations is not None:
-        print(fuse_n_nodes_inverse_variance(other_device_estimations))
+    device_positions: list[DevicePosition] = []
 
-    device_positions: dict[str, list[float]] = {
-        x["device_id"]: [0.1, 0.1] for x in devices
-    }
+    if position_estimations is not None:
+        fused_nodes = fuse_n_nodes_inverse_variance(position_estimations)
+
+        device_positions = generate_device_positions(fused_nodes)
+    else:
+        device_positions = [
+            DevicePosition.from_DeviceData(
+                device_data=devices[0], position=Position(0, 0)
+            )
+        ]
+
     ekf = LiveEKFTracker(device_positions)
 
     ekf_logger = DataLogger(
@@ -47,12 +65,14 @@ async def main():
             "ekf_estimation_y",
             "ekf_estimation_yv",
             "timestamp",
-        ]
+        ],
+        name="Device_Updated_EKF_With_Values",
     )
 
     def incoming_data_handler(
         technology: TECHNOLOGY, estimated: EstimatedDistance, device_id: DeviceId
     ) -> None:
+        print(f"Received data from {device_id}: {estimated} ({technology})")
         ekf.ingest_measurements({device_id: [estimated]})
         ekf_estimation = ekf.get_state()
 

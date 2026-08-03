@@ -1,10 +1,43 @@
 import time
-from typing import Any, NamedTuple
+from dataclasses import asdict
+from typing import Any, NamedTuple, Self
 
 import numpy as np
 from filterpy.common import Q_discrete_white_noise
 from filterpy.kalman import ExtendedKalmanFilter
 from numpy.typing import NDArray
+
+from src.discover_clients import DeviceData
+
+
+class Position(NamedTuple):
+    x: float
+    y: float
+
+
+class DevicePosition(DeviceData):
+    def __init__(
+        self,
+        hostname: str,
+        ip_address: str,
+        bluetooth_mac: str,
+        device_id: str,
+        position: Position,
+    ):
+
+        self.position: Position = position
+
+        super().__init__(hostname, ip_address, bluetooth_mac, device_id)
+
+    @classmethod
+    def from_DeviceData(cls, device_data: DeviceData, position: Position) -> Self:
+        return cls(
+            bluetooth_mac=device_data.bluetooth_mac,
+            device_id=device_data.device_id,
+            hostname=device_data.hostname,
+            ip_address=device_data.ip_address,
+            position=position,
+        )
 
 
 class EkfCorrection(NamedTuple):
@@ -17,16 +50,20 @@ class EkfCorrection(NamedTuple):
 class LiveEKFTracker:
     def __init__(
         self,
-        scanner_locations: dict[str, list[float]],
+        scanner_locations: list[DevicePosition],
         base_noise_variance: float = 0.5,
     ):
+
         self.scanners: dict[str, NDArray[Any]] = {
-            k: np.array(v) for k, v in scanner_locations.items()
+            scanner_location.device_id: np.array(
+                [scanner_location.position.x, scanner_location.position.y]
+            )
+            for scanner_location in scanner_locations
         }
         self.base_variance: float = base_noise_variance
 
         self.ekf: ExtendedKalmanFilter = ExtendedKalmanFilter(dim_x=4, dim_z=1)
-        self.ekf.x = np.array([[0.0, 0.0, 0.0, 0.0]]).T
+        self.ekf.x = np.array([[0.5, 0.0, 0.0, 0.5]]).T
         self.ekf.P = np.eye(4) * 100.0
 
         self.last_update_time: float = time.time()
@@ -88,7 +125,6 @@ class LiveEKFTracker:
                 active_positions.append(self.scanners[scanner_id])
                 averaged_z.append(np.mean(values))
                 scaled_variances.append(self.base_variance / N)
-                print("Found scanner and appended")
 
         if averaged_z:
             z = np.array(averaged_z)
@@ -102,7 +138,6 @@ class LiveEKFTracker:
                 args=(active_positions,),
                 hx_args=(active_positions,),
             )
-            print("ekf is updated!")
 
     def get_state(self) -> EkfCorrection:
         """Returns the current estimated position and velocity."""

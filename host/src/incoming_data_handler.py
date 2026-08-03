@@ -44,8 +44,8 @@ class UDPCatcher:
 
         loop = asyncio.get_running_loop()
         try:
-            try:
-                while True:
+            while True:
+                try:
                     # Async read without blocking the event loop
                     data: bytes = (await loop.sock_recvfrom(sock, 1024))[0]
                     received_data = cast(
@@ -57,10 +57,10 @@ class UDPCatcher:
                         received_data["estimatedDistance"],
                         received_data["deviceId"],
                     )
-            except (UnicodeDecodeError, json.JSONDecodeError, KeyError) as e:
-                print(f"Skipping malformed UDP packet: {e}")
-            finally:
-                sock.close()
+                except (UnicodeDecodeError, json.JSONDecodeError, KeyError) as e:
+                    print(f"Skipping malformed UDP packet: {e}")
+                except asyncio.CancelledError:
+                    break
         except OSError as e:
             print(f"UDP Socket error: {e}")
         finally:

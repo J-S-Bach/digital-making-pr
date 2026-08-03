@@ -1,16 +1,17 @@
 import json
 import os
 import socket
-from typing import Required, TypedDict
+from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
 
-class DeviceData(TypedDict, total=False):
-    hostname: Required[str]
-    ip_address: Required[str]
-    bluetooth_mac: Required[str]
-    device_id: Required[str]
+@dataclass
+class DeviceData:
+    hostname: str
+    ip_address: str
+    bluetooth_mac: str
+    device_id: str
 
 
 _ = load_dotenv()
@@ -25,6 +26,11 @@ def discover_clients():
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
     print("Sending discovery request to all ESP32s...")
+
+    sock.setsockopt(
+        socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton("0.0.0.0")
+    )
+
     _ = sock.sendto(
         b"_esp32-tracker-discovery-service", (MULTICAST_GROUP, DISCOVERY_PORT)
     )
@@ -38,18 +44,18 @@ def discover_clients():
                 _, json_object = msg.split(":", 1)
                 res = json.loads(json_object)
                 devices.append(
-                    {
-                        "hostname": res["hostname"],
-                        "ip_address": res["ipAddress"],
-                        "bluetooth_mac": res["bluetoothMac"],
-                        "device_id": res["deviceId"],
-                    }
+                    DeviceData(
+                        hostname=res["hostname"],
+                        ip_address=res["ipAddress"],
+                        bluetooth_mac=res["bluetoothMac"],
+                        device_id=res["deviceId"],
+                    )
                 )
     except TimeoutError:
         print(f"Discovery finished. Found {len(devices)} devices:")
         for device in devices:
             print(
-                f"  - Name: {device['hostname']} | IP: {device['ip_address']} | Bluetooth Mac: {device['bluetooth_mac']} | Identifier: {device['device_id']}"
+                f"  - Name: {device.hostname} | IP: {device.ip_address} | Bluetooth Mac: {device.bluetooth_mac} | Identifier: {device.device_id}"
             )
 
     return devices

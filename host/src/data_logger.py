@@ -31,7 +31,6 @@ class DataLogger[*Ts]:
     def write_data_point(self, data: list[str | int | float]):
         self.csv_writer.writerow(data)
         self.file.flush()
-        print(f"Wrote into csv file f{str(output_dir) + self.file_name}")
 
     def close(self):
         if not self.file.closed:
