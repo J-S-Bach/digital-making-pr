@@ -99,45 +99,31 @@ class LiveEKFTracker:
         return H
 
     def ingest_measurements(self, raw_readings: dict[str, list[float]]):
-        """
-        Call this whenever new data arrives from your transport layer (Socket/MQTT/Serial).
-        Format: {"scanner_A": [5.1, 5.0], "scanner_B": [10.2]}
-        """
         now = time.time()
         dt = now - self.last_update_time
+        if dt < 0.01:
+            return
 
-        if dt <= 0.0:
-            dt = 0.001
-
+        dt = min(dt, 1.0)
         self.last_update_time = now
 
         self._update_matrices_for_dt(dt)
-
         self.ekf.predict()
-
-        active_positions = []
-        averaged_z = []
-        scaled_variances = []
 
         for scanner_id, values in raw_readings.items():
             if values and scanner_id in self.scanners:
-                N = len(values)
-                active_positions.append(self.scanners[scanner_id])
-                averaged_z.append(np.mean(values))
-                scaled_variances.append(self.base_variance / N)
+                z_val = np.mean(values)
+                var_val = self.base_variance / len(values)
+                scanner_pos = [self.scanners[scanner_id]]
 
-        if averaged_z:
-            z = np.array(averaged_z)
-            R = np.diag(scaled_variances)
-
-            self.ekf.update(
-                z=z,
-                HJacobian=self._HJacobian,
-                Hx=self._hx,
-                R=R,
-                args=(active_positions,),
-                hx_args=(active_positions,),
-            )
+                self.ekf.update(
+                    z=np.array([z_val]),
+                    HJacobian=self._HJacobian,
+                    Hx=self._hx,
+                    R=np.array([[var_val]]),
+                    args=(scanner_pos,),
+                    hx_args=(scanner_pos,),
+                )
 
     def get_state(self) -> EkfCorrection:
         """Returns the current estimated position and velocity."""
