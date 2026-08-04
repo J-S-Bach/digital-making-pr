@@ -1,0 +1,59 @@
+import requests
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.prompt import Prompt
+
+from src.discover_clients import discover_clients
+
+console = Console()
+
+calibration_distances = [0.5, 1, 1.5, 2]
+
+
+def calibration_sequence():
+    console.print(
+        Panel.fit(
+            "[bold cyan]Calibration Sequence",
+            border_style="blue",
+        )
+    )
+    devices = discover_clients()
+
+    select_device_string = [
+        f"-  {device.hostname} [{index + 1}]\n" for index, device in enumerate(devices)
+    ]
+
+    choice_str: str = Prompt.ask(
+        f"Select a device:\n{''.join(select_device_string)}",
+        choices=[str(index + 1) for index, _ in enumerate(devices)],
+        default="auto",
+    )
+    selected_device = devices[int(choice_str) - 1]
+
+    console.print(f"\n[bold yellow]Selected Device: {selected_device}")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn(f"[progress.description]Starting calibration sequence on esp32"),
+        transient=True,
+    ) as progress:
+        progress.add_task("sampling", total=None)
+
+        res = requests.post(
+            "http://" + selected_device.ip_address + "/calibration/start",
+        )
+
+        res.raise_for_status()
+
+    for calibration_distance in calibration_distances:
+        _ = input(
+            f"Press Enter when {selected_device.hostname} is in position and tracking device is {calibration_distance} meters away."
+        )
+
+    # res = httpx.post(f"{ESP32_URL}/calibration/start", json={"mac": target_mac})
+    # res.raise_for_status()
+
+
+if __name__ == "__main__":
+    calibration_sequence()

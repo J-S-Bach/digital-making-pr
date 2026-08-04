@@ -6,8 +6,14 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         recess-deps = with pkgs; [
@@ -16,19 +22,25 @@
         ];
 
         uv-install = pkgs.writeShellScriptBin "uv-install" ''
-            uv sync
+          uv sync
         '';
 
         uv-run = pkgs.writeShellScriptBin "uv-run" ''
-            uv run python -m src.main
+          uv run python -m src.main
         '';
-      in {
+
+        run-calibration = pkgs.writeShellScriptBin "run-calibration" ''
+          uv run python -m src.calibration_sequence
+        '';
+      in
+      {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             python313
             uv
             uv-install
             uv-run
+            run-calibration
           ];
 
           shellHook = ''
@@ -37,5 +49,6 @@
             echo "Python ecosystem initialized with 'uv'"
           '';
         };
-      });
+      }
+    );
 }

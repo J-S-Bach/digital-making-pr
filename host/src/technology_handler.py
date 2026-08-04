@@ -72,7 +72,7 @@ class TechnologyHandler:
                 print(f"Sending calibration command to {device.hostname}...")
 
                 response = requests.post(
-                    "http://" + device.ip_address + "/calibrate",
+                    "http://" + device.ip_address + "/other-client-positions",
                     json={"otherDeviceMacIds": other_bluetooth_macs},
                 )
 

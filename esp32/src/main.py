@@ -61,8 +61,13 @@ class CalibrationResult:
         }
 
 
-@app.route("/calibrate", methods=["POST"])
-async def calibrate(request: Request):
+@app.route("/calibration/start", methods=["POST"])
+async def calibration_start(request: Request):
+    await asyncio.sleep(1)
+
+
+@app.route("/other-client-positions", methods=["POST"])
+async def other_client_positions(request: Request):
     """
     This API call tries to fetch the position of the other esp devices to allow an estimation of relative positions of each device. Expects other devices not to move during calibration.
 
@@ -82,7 +87,7 @@ async def calibrate(request: Request):
         body = json.loads(body_string)
 
     except (UnicodeDecodeError, json.JSONDecodeError) as e:
-        print(f"Invalid payload in /bluetooth/calibrate: {e}")
+        print(f"Invalid payload in /bluetooth/other-client-positions: {e}")
         return 400
 
     print(f"Got calibration request for {body['otherDeviceMacIds']}")
