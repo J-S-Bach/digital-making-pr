@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
+from src.self_identification import get_own_ip
+
 
 @dataclass
 class DeviceData:
@@ -17,7 +19,7 @@ class DeviceData:
 _ = load_dotenv()
 
 MULTICAST_GROUP = "224.0.0.251"
-DISCOVERY_PORT = os.getenv("DISCOVERY_PORT") or 6767
+DISCOVERY_PORT = int(os.getenv("DISCOVERY_PORT") or 6767)
 
 
 def discover_clients():
@@ -25,10 +27,13 @@ def discover_clients():
     sock.settimeout(2.0)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
+    local_ip = get_own_ip()
+    sock.bind((local_ip, DISCOVERY_PORT))
+
     print("Sending discovery request to all ESP32s...")
 
     sock.setsockopt(
-        socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton("0.0.0.0")
+        socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(local_ip)
     )
 
     _ = sock.sendto(

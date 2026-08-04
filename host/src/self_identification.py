@@ -2,9 +2,13 @@ import socket
 
 
 def get_own_ip():
-    local_hostname = socket.gethostname()
-    ip_addresses = socket.gethostbyname_ex(local_hostname)[2]
-    filtered_ips = [ip for ip in ip_addresses if not ip.startswith("127.")]
-    first_ip = filtered_ips[:1]
-
-    return first_ip[0]
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # Connect to an unroutable address; doesn't actually send traffic
+        s.connect(("10.255.255.255", 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
