@@ -66,6 +66,19 @@ async def calibration_start(request: Request):
     await asyncio.sleep(1)
 
 
+@app.route("/calibration/distance/<int:used_distance>", methods=["POST"])
+async def calibration_start(request: Request, used_distance: int):
+    print(
+        f"received wanted distance of {used_distance}. Mocking 1 second pause without doing anything."
+    )
+    await asyncio.sleep(1)
+
+
+@app.route("/calibration/finish", methods=["POST"])
+async def calibration_finish(request: Request):
+    await asyncio.sleep(1)
+
+
 @app.route("/other-client-positions", methods=["POST"])
 async def other_client_positions(request: Request):
     """
