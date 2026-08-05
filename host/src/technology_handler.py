@@ -76,6 +76,8 @@ class TechnologyHandler:
                     json={"otherDeviceMacIds": other_bluetooth_macs},
                 )
 
+                response.raise_for_status()
+
                 print(f"Got Response of {response.json()}")
 
                 other_devices_distances = [

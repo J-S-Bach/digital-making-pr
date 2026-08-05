@@ -30,7 +30,7 @@ def discover_clients():
     local_ip = get_own_ip()
     sock.bind((local_ip, DISCOVERY_PORT))
 
-    print("Sending discovery request to all ESP32s...")
+    print(f"Sending discovery request to all ESP32s (from {local_ip})...")
 
     sock.setsockopt(
         socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(local_ip)

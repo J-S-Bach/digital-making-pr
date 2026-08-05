@@ -5,7 +5,7 @@ import aioble
 
 class BluetoothAdvertiser:
     async def start_advertising(self):
-        print("Started bluetooth advertising...")
+        print("Started bluetooth advertising with values...")
         self.advertiser = asyncio.create_task(
             aioble.advertise(
                 100_000,

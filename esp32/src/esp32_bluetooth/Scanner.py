@@ -59,7 +59,7 @@ class BluetoothScanner:
         Call this function to start scanning. Initially is not scanning!
         """
         print(
-            f"Started Bluetooth scanning for uuids {', '.join(map(str, self.target_service_uuids))} and macs {', '.join(map(str, self.target_bluetooth_macs))}"
+            f"Started Bluetooth scanning for uuids {', '.join(map(str, self.target_service_uuids))} and macs {', '.join(map(str, self.target_bluetooth_macs))} (P0:{self.P0} N:{self.N})"
         )
         await self._scan()
 

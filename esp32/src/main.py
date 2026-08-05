@@ -3,13 +3,14 @@ import json
 import random
 
 import bluetooth
+from calibration_controller import CalibrationController
+from persistent_storage import PersistentStorage
 from microdot import Microdot, Request
 
 from connect_wifi import connect_wifi
 from esp32_bluetooth.Advertiser import BluetoothAdvertiser
 from esp32_bluetooth.Scanner import BluetoothScanner
 from send_udp import send_udp_package
-
 
 def generate_nanoid(length=21):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_- "
@@ -23,11 +24,12 @@ _, mac_bytes = ble.config("mac")
 DEVICE_MAC_ADDRESS = ":".join(f"{b:02X}" for b in mac_bytes)
 
 app = Microdot()
+persistent_storage = PersistentStorage()
 
 _DEVICE_ID = generate_nanoid()
 hostname = f"esp32-{DEVICE_MAC_ADDRESS[-6:]}"
 bluetooth_advertiser = BluetoothAdvertiser()
-
+calibration_controller: CalibrationController | None = None
 
 @app.route("/bluetooth-visibility/enable", methods=["POST"])
 async def bluetooth_visibility_enable(request: Request):
@@ -63,20 +65,78 @@ class CalibrationResult:
 
 @app.route("/calibration/start", methods=["POST"])
 async def calibration_start(request: Request):
-    await asyncio.sleep(1)
+    global calibration_controller
+    calibration_controller = CalibrationController()
+
+    return 200
 
 
-@app.route("/calibration/distance/<int:used_distance>", methods=["POST"])
-async def calibration_start(request: Request, used_distance: int):
-    print(
-        f"received wanted distance of {used_distance}. Mocking 1 second pause without doing anything."
-    )
-    await asyncio.sleep(1)
+@app.route("/calibration/distance/<used_distance_cm>", methods=["POST"])
+async def calibration_distance_set(request: Request, used_distance_cm: str):
+    """
+    Expects {
+    }
+        scanningDeviceServiceUUID: str # in format of 0xaaaa
+    """
+    if calibration_controller is None:
+        return "Calibration sequence not yet started!", 409
+
+    used_distance_m = float(used_distance_cm) / 100
+
+    try:
+        body_string: bytes = request.body.decode()  # type: ignore
+        body = json.loads(body_string)
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        print(f"Invalid payload in /bluetooth/wake-up: {e}")
+        return 400
+
+    encoded_uuid = int(body["scanningDeviceServiceUUID"], 16)
+    calibration_bluetooth_scanner = BluetoothScanner(target_service_uuids=[bluetooth.UUID(encoded_uuid)])
+    rssi_results: list[float] = []
+
+    def handle_scan_result(id: bluetooth.UUID | str, rssi: int, distance: float):
+        print(f"Found result {id} with rssi {rssi}")
+
+        if isinstance(id, str):
+            raise TypeError("Tried to use mac id for strict uuid")
+
+        rssi_results.append(rssi)
+
+        if len(rssi_results) > 10:
+            async def do_cancel():
+                print("Ending scanning for calibration sequence...")
+                scanning_task.cancel()
+
+            asyncio.create_task(
+                do_cancel()
+            )
+
+    calibration_bluetooth_scanner.subscribe(handle_scan_result)
+    scanning_task = asyncio.create_task(calibration_bluetooth_scanner.start())
+
+
+    try:
+        await scanning_task
+    except asyncio.CancelledError:
+        print("Scan task was cancelled as expected.")
+
+    calibration_controller.add_measurement(distance=used_distance_m, measurements=rssi_results)
+
+    return "Success", 200
 
 
 @app.route("/calibration/finish", methods=["POST"])
 async def calibration_finish(request: Request):
-    await asyncio.sleep(1)
+    if calibration_controller is None:
+        return "Calibration sequence not yet started!", 409
+
+    P0, N = calibration_controller.get_results()
+
+    persistent_storage.set("P0", P0)
+    persistent_storage.set("N", N)
+
+    print(f"Calibration sequence finished with optimal values p0: {P0} and N: {N}")
+    return "Success", 200
 
 
 @app.route("/other-client-positions", methods=["POST"])
@@ -93,7 +153,7 @@ async def other_client_positions(request: Request):
             {device_bluetooth_mac: str, estimated_distances: [float]}
         ]
     """
-    print("Starting calibration sequence...")
+    print("Starting localization of other devices sequence...")
 
     try:
         body_string: bytes = request.body.decode()  # type: ignore
@@ -108,6 +168,8 @@ async def other_client_positions(request: Request):
     other_device_scanner = BluetoothScanner(
         [],
         body["otherDeviceMacIds"],
+        P0=persistent_storage.get("P0"),
+        N=persistent_storage.get("N")
     )
 
     results = [
@@ -141,7 +203,6 @@ async def other_client_positions(request: Request):
 
         # TODO: Also set a timeout if one other device is not reachable!
         if are_all_devices_found_more_than_10_times:
-
             async def do_cancel():
                 print("Ending scanning for calibration sequence...")
                 scanning_task.cancel()
@@ -203,7 +264,7 @@ async def bluetooth_wake_up(request: Request):
 
     encoded_uuid = int(body["trackedServiceSSID"], 16)
 
-    current_bluetooth_scanner = BluetoothScanner([bluetooth.UUID(encoded_uuid)])
+    current_bluetooth_scanner = BluetoothScanner([bluetooth.UUID(encoded_uuid)], P0 = persistent_storage.get("P0"), N = persistent_storage.get("N"))
 
     def handle_bluetooth_device_discovery(
         uuid: bluetooth.UUID | str, rssi: int, estimated_distance: float

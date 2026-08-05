@@ -16,13 +16,12 @@ DEVICE_MAC_ADDRESS = ":".join(f"{b:02X}" for b in mac_bytes)
 
 
 def connect_wifi(device_id: str, hostname: str):
+    print(f'Trying to Connecting to wifi "{config.WIFI_NAME}"...')
     station = network.WLAN(network.STA_IF)
-    network.hostname(hostname)
 
     station.active(True)
     station.connect(config.WIFI_NAME, config.WIFI_PASSWORD)
 
-    print(f'Trying to Connecting to wifi "{config.WIFI_NAME}"...')
 
     # Wait for connection
     timeout = 10

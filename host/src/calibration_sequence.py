@@ -8,7 +8,7 @@ from src.discover_clients import discover_clients
 
 console = Console()
 
-calibration_distances = [0.5, 1, 1.5, 2]
+calibration_distances = [50, 100, 150, 200]
 
 
 def calibration_sequence():
@@ -20,16 +20,25 @@ def calibration_sequence():
     )
     devices = discover_clients()
 
-    select_device_string = [
-        f"-  {device.hostname} [{index + 1}]\n" for index, device in enumerate(devices)
-    ]
+    if(len(devices) <= 0):
+        print("No devices found!")
+        return
 
-    choice_str: str = Prompt.ask(
-        f"Select a device:\n{''.join(select_device_string)}",
-        choices=[str(index + 1) for index, _ in enumerate(devices)],
-        default="auto",
-    )
-    selected_device = devices[int(choice_str) - 1]
+    elif len(devices) == 1:
+
+        console.print("1 device found. Therefore no selection necessary.")
+        selected_device = devices[0]
+    else:
+        select_device_string = [
+            f"-  {device.hostname} [{index + 1}]\n" for index, device in enumerate(devices)
+        ]
+
+        choice_str: str = Prompt.ask(
+            f"Select a device:\n{''.join(select_device_string)}",
+            choices=[str(index + 1) for index, _ in enumerate(devices)],
+            default="auto",
+        )
+        selected_device = devices[int(choice_str) - 1]
 
     console.print(f"\n[bold yellow]Selected Device: {selected_device}")
 
@@ -50,6 +59,32 @@ def calibration_sequence():
         _ = input(
             f"Press Enter when {selected_device.hostname} is in position and tracking device is {calibration_distance} meters away."
         )
+        with Progress(
+            SpinnerColumn(),
+            TextColumn(f"[progress.description]Sending bluetooth trackers on client..."),
+            transient=True,
+        ) as progress:
+            _ = progress.add_task("sampling", total=None)
+
+            res = requests.post(
+                "http://" + selected_device.ip_address + "/calibration/distance/" + str(calibration_distance),
+                json={"scanningDeviceServiceUUID": "0xaaaa"}
+            )
+
+            res.raise_for_status()
+
+    res = requests.post(
+        "http://" + selected_device.ip_address + "/calibration/finish",
+    )
+
+    res.raise_for_status()
+
+    console.print("Calibration sequence successfull.")
+
+
+
+
+
 
     # res = httpx.post(f"{ESP32_URL}/calibration/start", json={"mac": target_mac})
     # res.raise_for_status()
