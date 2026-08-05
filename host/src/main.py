@@ -73,7 +73,7 @@ async def main():
         technology: TECHNOLOGY, estimated: EstimatedDistance, device_id: DeviceId
     ) -> None:
         print(f"Received data from {device_id}: {estimated} ({technology})")
-        ekf.ingest_measurements({device_id: [estimated]})
+        ekf.ingest_measurement(device_id, estimated)
         ekf_estimation = ekf.get_state()
 
         d = datetime.now(UTC).isoformat()
