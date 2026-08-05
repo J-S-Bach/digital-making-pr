@@ -58,6 +58,8 @@ async def main():
     ekf_logger = DataLogger(
         [
             "device_id",
+            "device_position_x",
+            "device_position_y",
             "technology",
             "input_data",
             "ekf_estimation_x",
@@ -80,6 +82,8 @@ async def main():
         ekf_logger.write_data_point(
             [
                 device_id,
+                matching_device_position.position.x,
+                matching_device_position.position.y,
                 str(technology),
                 estimated,
                 ekf_estimation.x,
