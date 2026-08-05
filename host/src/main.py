@@ -79,6 +79,10 @@ async def main():
         ekf_estimation = ekf.get_state()
 
         d = datetime.now(UTC).isoformat()
+        matching_device_position =  next((pos for pos in device_positions if pos.device_id == device_id), None)
+        if matching_device_position is None:
+            raise Exception("no matching device position found")
+
         ekf_logger.write_data_point(
             [
                 device_id,
