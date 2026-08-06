@@ -16,6 +16,7 @@ def generate_nanoid(length=21):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_- "
     return "".join(random.choice(alphabet) for _ in range(length))
 
+BLUETOOTH_RETRIES = 50
 
 ble = bluetooth.BLE()
 ble.active(True)
@@ -102,7 +103,7 @@ async def calibration_distance_set(request: Request, used_distance_cm: str):
 
         rssi_results.append(rssi)
 
-        if len(rssi_results) > 10:
+        if len(rssi_results) > BLUETOOTH_RETRIES:
             async def do_cancel():
                 print("Ending scanning for calibration sequence...")
                 scanning_task.cancel()
@@ -198,7 +199,7 @@ async def other_client_positions(request: Request):
         ]
 
         are_all_devices_found_more_than_10_times = all(
-            x >= 10 for x in individual_device_found_distances_list_length
+            x >= BLUETOOTH_RETRIES for x in individual_device_found_distances_list_length
         )
 
         # TODO: Also set a timeout if one other device is not reachable!
