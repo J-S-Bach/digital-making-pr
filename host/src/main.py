@@ -8,7 +8,8 @@ from src.calculate_relative_positions import (
     generate_device_positions,
 )
 from src.data_logger import DataLogger
-from src.estimation import DevicePosition, LiveEKFTracker, Position
+from src.estimations.ekf_layout import DevicePosition, Position
+from src.estimations.ekf_single_badge_non_linear import EkfSingleBadgeNonLinear
 from src.incoming_data_handler import (
     TECHNOLOGY,
     DeviceId,
@@ -18,7 +19,7 @@ from src.incoming_data_handler import (
 from src.self_identification import get_own_ip
 from src.technology_handler import TechnologyHandler
 
-from .discover_clients import DeviceData, discover_clients
+from .discover_clients import discover_clients
 
 devices = discover_clients()
 
@@ -53,7 +54,7 @@ async def main():
             )
         ]
 
-    ekf = LiveEKFTracker(device_positions)
+    ekf = EkfSingleBadgeNonLinear(device_positions)
 
     ekf_logger = DataLogger(
         [
@@ -73,7 +74,7 @@ async def main():
         technology: TECHNOLOGY, estimated: EstimatedDistance, device_id: DeviceId
     ) -> None:
         print(f"Received data from {device_id}: {estimated} ({technology})")
-        ekf.ingest_measurement(device_id, estimated)
+        ekf.add_measurement(device_id, estimated)
         ekf_estimation = ekf.get_state()
 
         d = datetime.now(UTC).isoformat()

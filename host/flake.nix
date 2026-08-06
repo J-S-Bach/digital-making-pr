@@ -30,7 +30,11 @@
         '';
 
         run-calibration = pkgs.writeShellScriptBin "run-calibration" ''
-          uv run python -m src.calibration_sequence
+          uv run python -m calibration.calibration_sequence
+        '';
+
+        run-ekf-tests = pkgs.writeShellScriptBin "run-ekf-tests" ''
+          uv run python -m testing.ekf_testing
         '';
       in
       {
@@ -41,6 +45,7 @@
             uv-install
             uv-run
             run-calibration
+            run-ekf-tests
           ];
 
           shellHook = ''

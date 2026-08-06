@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from src.discover_clients import DeviceData
-from src.estimation import DevicePosition, Position
+from src.estimations.ekf_layout import DevicePosition, Position
 from src.technology_handler import NodeCalibrationData
 
 
