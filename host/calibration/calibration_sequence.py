@@ -20,17 +20,17 @@ def calibration_sequence():
     )
     devices = discover_clients()
 
-    if(len(devices) <= 0):
+    if len(devices) <= 0:
         print("No devices found!")
         return
 
     elif len(devices) == 1:
-
         console.print("1 device found. Therefore no selection necessary.")
         selected_device = devices[0]
     else:
         select_device_string = [
-            f"-  {device.hostname} [{index + 1}]\n" for index, device in enumerate(devices)
+            f"-  {device.hostname} [{index + 1}]\n"
+            for index, device in enumerate(devices)
         ]
 
         choice_str: str = Prompt.ask(
@@ -57,18 +57,23 @@ def calibration_sequence():
 
     for calibration_distance in calibration_distances:
         _ = input(
-            f"Press Enter when {selected_device.hostname} is in position and tracking device is {calibration_distance} meters away."
+            f"Press Enter when {selected_device.hostname} is in position and tracking device is {calibration_distance / 100} meters away."
         )
         with Progress(
             SpinnerColumn(),
-            TextColumn(f"[progress.description]Sending bluetooth trackers on client..."),
+            TextColumn(
+                f"[progress.description]Sending bluetooth trackers on client..."
+            ),
             transient=True,
         ) as progress:
             _ = progress.add_task("sampling", total=None)
 
             res = requests.post(
-                "http://" + selected_device.ip_address + "/calibration/distance/" + str(calibration_distance),
-                json={"scanningDeviceServiceUUID": "0xaaaa"}
+                "http://"
+                + selected_device.ip_address
+                + "/calibration/distance/"
+                + str(calibration_distance),
+                json={"scanningDeviceServiceUUID": "0xaaaa"},
             )
 
             res.raise_for_status()
@@ -79,15 +84,7 @@ def calibration_sequence():
 
     res.raise_for_status()
 
-    console.print("Calibration sequence successfull.")
-
-
-
-
-
-
-    # res = httpx.post(f"{ESP32_URL}/calibration/start", json={"mac": target_mac})
-    # res.raise_for_status()
+    console.print("Calibration sequence successful.")
 
 
 if __name__ == "__main__":
