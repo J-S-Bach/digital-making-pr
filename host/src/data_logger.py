@@ -6,7 +6,7 @@ from pathlib import Path
 from time import time
 from typing import TypeVarTuple
 
-output_dir = Path("./tracker/")
+output_dir = Path("./logs/")
 Ts = TypeVarTuple("Ts")
 
 
