@@ -1,12 +1,5 @@
-import time
 from abc import ABC, abstractmethod
-from typing import Any, NamedTuple, Self
-
-import numpy as np
-from filterpy.common import Q_discrete_white_noise
-from filterpy.kalman import ExtendedKalmanFilter
-from numpy.typing import NDArray
-from scipy.linalg import block_diag
+from typing import NamedTuple, Self
 
 from src.discover_clients import DeviceData
 

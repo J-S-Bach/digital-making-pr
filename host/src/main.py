@@ -1,7 +1,6 @@
 import asyncio
 from asyncio import sleep
 from datetime import UTC, datetime
-from typing import NamedTuple
 
 from src.calculate_relative_positions import (
     fuse_n_nodes_inverse_variance,
@@ -59,10 +58,10 @@ async def main():
     ekf_logger = DataLogger(
         [
             "device_id",
-            "device_position_x",
-            "device_position_y",
+            "tracking_device_position_x",
+            "tracking_device_position_y",
             "technology",
-            "input_data",
+            "tracked_device_raw_distance_data",
             "ekf_estimation_x",
             "ekf_estimation_xv",
             "ekf_estimation_y",
@@ -73,24 +72,28 @@ async def main():
     )
 
     def incoming_data_handler(
-        technology: TECHNOLOGY, estimated: EstimatedDistance, device_id: DeviceId
+        technology: TECHNOLOGY, estimated_distance: EstimatedDistance, device_id: DeviceId
     ) -> None:
-        print(f"Received data from {device_id}: {estimated} ({technology})")
-        ekf.add_measurement(device_id, estimated)
+        print(f"Received data from {device_id}: {estimated_distance} ({technology})")
+        ekf.add_measurement(device_id, estimated_distance)
         ekf_estimation = ekf.get_state()
 
         d = datetime.now(UTC).isoformat()
-        matching_device_position =  next((pos for pos in device_positions if pos.device_id == device_id), None)
-        if matching_device_position is None:
-            raise Exception("no matching device position found")
+
+        # Get the device that sent the data based on the id it used to send the data.
+        client =  next((pos for pos in device_positions if pos.device_id == device_id), None)
+
+        if client is None:
+            raise Exception("Found no known client of this udp package based on id!")
+
 
         ekf_logger.write_data_point(
             [
                 device_id,
-                matching_device_position.position.x,
-                matching_device_position.position.y,
+                client.position.x,
+                client.position.y,
                 str(technology),
-                estimated,
+                estimated_distance,
                 ekf_estimation.x,
                 ekf_estimation.vx,
                 ekf_estimation.y,
