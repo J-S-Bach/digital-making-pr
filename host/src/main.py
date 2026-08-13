@@ -60,6 +60,9 @@ async def main():
             "device_id",
             "tracking_device_position_x",
             "tracking_device_position_y",
+            "tracking_device_bluetooth_mac",
+            "tracking_device_hostname",
+            "tracking_device_ip_address",
             "technology",
             "tracked_device_raw_distance_data",
             "ekf_estimation_x",
@@ -72,33 +75,39 @@ async def main():
     )
 
     def incoming_data_handler(
-        technology: TECHNOLOGY, estimated_distance: EstimatedDistance, device_id: DeviceId
+        technology: TECHNOLOGY,
+        estimated_distance: EstimatedDistance,
+        device_id: DeviceId,
     ) -> None:
         print(f"Received data from {device_id}: {estimated_distance} ({technology})")
         ekf.add_measurement(device_id, estimated_distance)
         ekf_estimation = ekf.get_state()
 
-        d = datetime.now(UTC).isoformat()
+        now_str = datetime.now(UTC).isoformat()
 
         # Get the device that sent the data based on the id it used to send the data.
-        client =  next((pos for pos in device_positions if pos.device_id == device_id), None)
+        client = next(
+            (pos for pos in device_positions if pos.device_id == device_id), None
+        )
 
         if client is None:
             raise Exception("Found no known client of this udp package based on id!")
 
-
         ekf_logger.write_data_point(
             [
-                device_id,
+                client.device_id,
                 client.position.x,
                 client.position.y,
+                client.bluetooth_mac,
+                client.hostname,
+                client.ip_address,
                 str(technology),
                 estimated_distance,
                 ekf_estimation.x,
                 ekf_estimation.vx,
                 ekf_estimation.y,
                 ekf_estimation.vy,
-                d,
+                now_str,
             ]
         )
 
