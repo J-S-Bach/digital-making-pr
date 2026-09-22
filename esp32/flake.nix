@@ -50,16 +50,7 @@
           inherit system;
         };
 
-        # 1. Select available ESP-IDF v5 shell from esp-idf-nix
-        espDevShell =
-          if builtins.hasAttr "v5" esp-idf-nix.devShells.${system} then
-            esp-idf-nix.devShells.${system}.v5
-          else if builtins.hasAttr "v5_3" esp-idf-nix.devShells.${system} then
-            esp-idf-nix.devShells.${system}.v5_3
-          else if builtins.hasAttr "v5_2" esp-idf-nix.devShells.${system} then
-            esp-idf-nix.devShells.${system}.v5_2
-          else
-            esp-idf-nix.devShells.${system}.default;
+        espDevShell = esp-idf-nix.devShells.${system}.v5;
 
         run-main = pkgs.writeShellScriptBin "run-main" ''
                     echo "Executing local file main.py on ESP32"
@@ -85,6 +76,32 @@
 
                     mpremote cp -r ./src/* :.
                     mpremote run ./src/main.py
+        '';
+
+        run-uwb-test = pkgs.writeShellScriptBin "run-uwb-test" ''
+                    echo "Executing local file main.py on ESP32"
+
+                    if [ -f .env ]; then
+                        echo "Loading secrets from .env..."
+                        export $(grep -v '^#' .env | xargs)
+                    else
+                        echo ".env file not found!"
+                        return 1
+                    fi
+
+                    if [ -n "$WIFI_NAME" ] && [ -n "$WIFI_PASSWORD" ]; then
+                      mpremote fs rm config.py 2>/dev/null || true
+                      mpremote exec "
+          with open('config.py', 'w') as f:
+              f.write('WIFI_NAME = \"$WIFI_NAME\"\n')
+              f.write('WIFI_PASSWORD = \"$WIFI_PASSWORD\"\n')
+          "
+                    else
+                        echo "WIFI_NAME or WIFI_PASSWORD not set. Skipping config generation."
+                    fi
+
+                    mpremote cp -r ./uwb-test/* :.
+                    mpremote run ./uwb-test/main.py
         '';
 
         # Build script that automatically stages Decadriver sources and micropython-lib
@@ -205,6 +222,7 @@
             build-firmware
             dm-flash
             run-main
+            run-uwb-test
             install-microdot
             install-aioble
           ];
