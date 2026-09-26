@@ -1,16 +1,37 @@
 import math
 from datetime import datetime
+from time import time
 from typing import NamedTuple
 
 from src.data_logger import DataLogger
 from src.estimations.ekf_layout import EkfCorrection, EkfLayout, Position
-from src.estimations.ekf_multiple_badge_non_linear import EkfMultipleBadgeNonLinear
-from src.estimations.ekf_single_badge_non_linear import EkfSingleBadgeNonLinear
+from src.estimations.ekf_multiple_badge_non_linear_initial_velocity_05 import (
+    EkfMultipleBadgeNonLinearWithVelocity,
+)
+from src.estimations.ekf_multiple_badge_non_linear_no_initial_velocity import (
+    EkfMultipleBadgeNonLinearWithoutInitialVelocity,
+)
+from src.estimations.ekf_multiple_badges_sequential_gated_dropping_initial_velocity_05 import (
+    EkfMultipleBadgesSequentialGatedWithInitialVelocity,
+)
+from src.estimations.ekf_multiple_badges_sequential_gated_dropping_no_initial_velocity import (
+    EkfMultipleBadgesSequentialGatedNoVelocity,
+)
+from src.estimations.ekf_single_badge_non_linear_initial_velocity_05 import (
+    EkfSingleBadgeNonLinearWithInitialVelocity,
+)
+from src.estimations.ekf_single_badge_non_linear_no_initial_velocit import (
+    EkfSingleBadgeNonLinearNoVelocity,
+)
 from testing.load_test_sets import TestCase, TestSet, load_test_sets
 
 POSSIBLE_FILTERS: list[type[EkfLayout]] = [
-    EkfMultipleBadgeNonLinear,
-    EkfSingleBadgeNonLinear,
+    EkfMultipleBadgeNonLinearWithVelocity,
+    EkfMultipleBadgeNonLinearWithoutInitialVelocity,
+    EkfSingleBadgeNonLinearNoVelocity,
+    EkfSingleBadgeNonLinearWithInitialVelocity,
+    EkfMultipleBadgesSequentialGatedNoVelocity,
+    EkfMultipleBadgesSequentialGatedWithInitialVelocity,
 ]
 
 POSSIBLE_NOISE_VARIANCES: list[float] = [0.1, 0.5, 1]
@@ -33,20 +54,13 @@ class EkfAndRealDataPoint(NamedTuple):
     actual: Position
 
 
-def save_test_result() -> None:
-    """
-    This makes sure to actually be able to see and maybe visualize the results.
-    """
-    pass
-
-
 # Do we also need a start point?
 def get_actual_position(timestamp: datetime) -> Position:
     """
     Takes current time and (or step index?) and returns the position that should actually be returned.
     Change this depending on test.
     """
-    return Position(x=0.5, y=0.5)
+    return Position(x=0, y=0)
 
 
 def calculate_results(
@@ -96,27 +110,30 @@ def performance_testing():
                     )
                 )
 
+    test_case_logger = DataLogger(
+        [
+            "actual_x",
+            "actual_y",
+            "ekf_x",
+            "ekf_y",
+            "overall_rmse",
+            "overall_max_error",
+            "overall_mae",
+            "noise_variance",
+            "algorithm_name",
+        ],
+        f"test_results_{time()}",
+    )
+
     for test_case in test_cases:
         raw_test_case_results: list[EkfAndRealDataPoint] = []
-        test_case_logger = DataLogger(
-            [
-                "actual_x",
-                "actual_y",
-                "ekf_x",
-                "ekf_y",
-                "overall_rmse",
-                "overall_max_error",
-                "overall_mae",
-            ],
-            f"test_results_{test_case.name}",
-        )
 
         for test_set_data_point in test_case.data:
             (scanner_id, distance, timestamp) = test_set_data_point
             actual_position = get_actual_position(timestamp)
 
-            test_case.ekf.add_measurement(scanner_id, distance)
-            ekf_correction = test_case.ekf.get_state()
+            test_case.ekf.add_measurement(scanner_id, distance, timestamp=timestamp)
+            ekf_correction = test_case.ekf.get_state(timestamp=timestamp)
 
             raw_test_case_results.append(
                 EkfAndRealDataPoint(ekf=ekf_correction, actual=actual_position)
@@ -134,6 +151,8 @@ def performance_testing():
                     calculated_test_set.rmse,
                     calculated_test_set.max_error,
                     calculated_test_set.mae,
+                    test_case.ekf.base_variance,
+                    test_case.ekf.descriptor,
                 ]
             )
 

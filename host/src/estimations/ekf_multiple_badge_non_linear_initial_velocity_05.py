@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from typing import Any
 
 import numpy as np
@@ -10,7 +11,7 @@ from scipy.linalg import block_diag
 from src.estimations.ekf_layout import DevicePosition, EkfCorrection, EkfLayout
 
 
-class EkfMultipleBadgeNonLinear(EkfLayout):
+class EkfMultipleBadgeNonLinearWithVelocity(EkfLayout):
     def __init__(
         self,
         scanner_locations: list[DevicePosition],
@@ -23,16 +24,26 @@ class EkfMultipleBadgeNonLinear(EkfLayout):
             for scanner_location in scanner_locations
         }
         self.base_variance: float = base_noise_variance
+        self.descriptor = "Multiple Badges Non Linear With 0.5 initial velocity"
 
         self.ekf: ExtendedKalmanFilter = ExtendedKalmanFilter(dim_x=4, dim_z=1)
         self.ekf.x = np.array([[0.5, 0.0, 0.0, 0.5]]).T
         self.ekf.P = np.eye(4) * 100.0
 
-        self.last_update_time: float = time.time()
+        self.last_update_time: float | None = None
 
         self.measurement_buffer: dict[str, list[float]] = {}
 
         print(f"Added sensors {self.scanners}")
+
+    @staticmethod
+    def _parse_timestamp(ts: datetime | float | None) -> float:
+        """Converts datetime, float, or None to Unix timestamp in seconds."""
+        if ts is None:
+            return time.time()
+        if isinstance(ts, datetime):
+            return ts.timestamp()
+        return float(ts)
 
     def _update_matrices_for_dt(self, dt: float):
         """Dynamically update F and Q for the actual elapsed time dt."""
@@ -74,7 +85,12 @@ class EkfMultipleBadgeNonLinear(EkfLayout):
 
         return H
 
-    def add_measurement(self, scanner_id: str, distance: float):
+    def add_measurement(
+        self,
+        scanner_id: str,
+        distance: float,
+        timestamp: datetime | float | None = None,
+    ):
         """Collects incoming measurements into a buffer over time."""
         if scanner_id not in self.scanners or distance <= 0.05:
             return
@@ -84,18 +100,19 @@ class EkfMultipleBadgeNonLinear(EkfLayout):
 
         self.measurement_buffer[scanner_id].append(distance)
 
-    def process_buffered_batch(self):
+    def process_buffered_batch(self, timestamp: datetime | float | None = None):
         """Flushes the buffer and performs a single batched EKF update step."""
         if not self.measurement_buffer:
             return
 
-        now = time.time()
-        dt = now - self.last_update_time
+        now = self._parse_timestamp(timestamp)
 
-        # Ensure minimal elapsed time before predicting
-        if dt < 0.01:
-            return
+        if self.last_update_time is None:
+            dt = 0.05
+        else:
+            dt = now - self.last_update_time
 
+        dt = max(dt, 0.001)
         dt = min(dt, 1.0)
         self.last_update_time = now
 
@@ -148,8 +165,9 @@ class EkfMultipleBadgeNonLinear(EkfLayout):
         self.ekf.x[1, 0] = np.clip(self.ekf.x[1, 0], -3.0, 3.0)  # max vx (m/s)
         self.ekf.x[3, 0] = np.clip(self.ekf.x[3, 0], -3.0, 3.0)  # max vy (m/s)
 
-    def get_state(self) -> EkfCorrection:
-        """Returns current estimated position and velocity."""
+    def get_state(self, timestamp: datetime | float | None = None) -> EkfCorrection:
+        """Flushes buffered measurements and returns current estimated position and velocity."""
+        self.process_buffered_batch(timestamp=timestamp)
         return EkfCorrection(
             float(self.ekf.x[0, 0]),
             float(self.ekf.x[1, 0]),

@@ -39,6 +39,7 @@ class FusedVarianceData(NamedTuple):
 
 # This is called N-Node Inverse-Variance Weighting. Include and explain this in report. Basically, the more variance the measurement has, the less it gets used for the average. easy peasy. https://en.wikipedia.org/wiki/Inverse-variance_weighting
 
+
 # AI Generated (Gemini)
 def classical_mds(dist_matrix: np.ndarray, dims: int = 2) -> NDArray[np.float64]:
     """Computes N-dimensional coordinates from a distance matrix."""
@@ -115,6 +116,10 @@ def fuse_n_nodes_inverse_variance(
 
 
 def generate_device_positions(fused_data: FusedVarianceData) -> list[DevicePosition]:
+    """
+    Creates a list of device positions based on estimations.
+    """
+
     # Extract unique devices
     devices = list(
         {

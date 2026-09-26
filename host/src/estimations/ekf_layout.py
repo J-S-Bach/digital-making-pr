@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import NamedTuple, Self
 
 from src.discover_clients import DeviceData
@@ -48,10 +49,16 @@ class EkfLayout(ABC):
     ):
         pass
 
+    base_variance: float
+
+    descriptor: str = "Not selected"
+
     @abstractmethod
-    def add_measurement(self, scanner_id: str, distance: float):
+    def add_measurement(
+        self, scanner_id: str, distance: float, timestamp: datetime | float | None
+    ):
         """Collects incoming measurements into a buffer over time."""
 
     @abstractmethod
-    def get_state(self) -> EkfCorrection:
+    def get_state(self, timestamp: datetime | float | None) -> EkfCorrection:
         """Returns current estimated position and velocity."""

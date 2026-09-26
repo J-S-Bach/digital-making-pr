@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from typing import Any, override
 
 import numpy as np
@@ -10,7 +11,7 @@ from scipy.linalg import block_diag
 from src.estimations.ekf_layout import DevicePosition, EkfCorrection, EkfLayout
 
 
-class EkfSingleBadgeNonLinear(EkfLayout):
+class EkfSingleBadgeNonLinearWithInitialVelocity(EkfLayout):
     def __init__(
         self,
         scanner_locations: list[DevicePosition],
@@ -23,14 +24,24 @@ class EkfSingleBadgeNonLinear(EkfLayout):
             for scanner_location in scanner_locations
         }
         self.base_variance: float = base_noise_variance
+        self.descriptor = "Single Badge Non-Linear with initial velocity"
 
         self.ekf: ExtendedKalmanFilter = ExtendedKalmanFilter(dim_x=4, dim_z=1)
         self.ekf.x = np.array([[0.5, 0.0, 0.0, 0.5]]).T
         self.ekf.P = np.eye(4) * 100.0
 
-        self.last_update_time: float = time.time()
+        self.last_update_time: float | None = None
 
         print(f"Added sensors {self.scanners}")
+
+    @staticmethod
+    def _parse_timestamp(ts: datetime | float | None) -> float:
+        """Converts datetime, float, or None to Unix timestamp in seconds."""
+        if ts is None:
+            return time.time()
+        if isinstance(ts, datetime):
+            return ts.timestamp()
+        return float(ts)
 
     def _update_matrices_for_dt(self, dt: float):
         self.ekf.F = np.array(
@@ -60,12 +71,21 @@ class EkfSingleBadgeNonLinear(EkfLayout):
         return H
 
     @override
-    def add_measurement(self, scanner_id: str, distance: float):
+    def add_measurement(
+        self,
+        scanner_id: str,
+        distance: float,
+        timestamp: datetime | float | None = None,
+    ):
         """Process readings"""
         if scanner_id not in self.scanners or distance <= 0.05:
             return
 
-        now = time.time()
+        now = self._parse_timestamp(timestamp)
+
+        if self.last_update_time is None:
+            self.last_update_time = now
+
         dt = now - self.last_update_time
 
         # Predict state forward if sufficient time has elapsed
@@ -100,7 +120,7 @@ class EkfSingleBadgeNonLinear(EkfLayout):
         self.ekf.x[1, 0] = np.clip(self.ekf.x[1, 0], -3.0, 3.0)  # max vx (m/s)
         self.ekf.x[3, 0] = np.clip(self.ekf.x[3, 0], -3.0, 3.0)  # max vy (m/s)
 
-    def get_state(self) -> EkfCorrection:
+    def get_state(self, timestamp: datetime | float | None = None) -> EkfCorrection:
         """Returns the current estimated position and velocity."""
         return EkfCorrection(
             float(self.ekf.x[0, 0]),
