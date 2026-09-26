@@ -16,17 +16,21 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        recess-deps = with pkgs; [
-          stdenv.cc.cc.lib
-          zlib
-        ];
+        # recess-deps = with pkgs; [
+        #   stdenv.cc.cc.lib
+        #   zlib
+        # ];
 
         uv-install = pkgs.writeShellScriptBin "uv-install" ''
           uv sync
         '';
 
         uv-run = pkgs.writeShellScriptBin "uv-run" ''
-          uv run python -m src.main
+          uv run -m src.main
+        '';
+
+        uv-run-gui = pkgs.writeShellScriptBin "uv-run-gui" ''
+          uv run -m src.main --gui
         '';
 
         run-calibration = pkgs.writeShellScriptBin "run-calibration" ''
@@ -46,10 +50,10 @@
             uv-run
             run-calibration
             run-ekf-tests
+            uv-run-gui
           ];
 
           shellHook = ''
-            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath recess-deps}:$LD_LIBRARY_PATH"
             uv-install
             echo "Python ecosystem initialized with 'uv'"
           '';

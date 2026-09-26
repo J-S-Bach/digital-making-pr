@@ -2,7 +2,7 @@
 name = "device-tracking-host"
 version = "0.0.1"
 requires-python = ">=3.13"
-dependencies = ["python-dotenv", "requests", "numpy", "filterpy", "Rich"]
+dependencies = ["python-dotenv", "requests", "numpy", "filterpy", "Rich", "dash"]
 
 [tool.basedpyright]
 venvPath = "."

@@ -23,12 +23,12 @@
     };
 
     # Fetching Makerfabs driver repository with ref specified to prevent 404
-    qorvo-dw3000-src = {
-      url = "github:Makerfabs/Makerfabs-ESP32-UWB-DW3000?ref=main";
-      flake = false;
-    };
+    # qorvo-dw3000-src = {
+    #   url = "github:Makerfabs/Makerfabs-ESP32-UWB-DW3000?ref=main";
+    #   flake = false;
+    # };
 
-    esp-idf-nix.url = "github:Cbeck527/esp-idf-nix";
+    # esp-idf-nix.url = "github:Cbeck527/esp-idf-nix";
   };
 
   outputs =
@@ -40,8 +40,8 @@
       micropython-lib-src,
       berkeley-db-src,
       microdot-src,
-      qorvo-dw3000-src,
-      esp-idf-nix,
+      # qorvo-dw3000-src,
+      # esp-idf-nix,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -50,7 +50,7 @@
           inherit system;
         };
 
-        espDevShell = esp-idf-nix.devShells.${system}.v5;
+        # espDevShell = esp-idf-nix.devShells.${system}.v5;
 
         run-main = pkgs.writeShellScriptBin "run-main" ''
                     echo "Executing local file main.py on ESP32"
@@ -105,39 +105,40 @@
         '';
 
         # Build script that automatically stages Decadriver sources and micropython-lib
-        build-firmware = pkgs.writeShellScriptBin "build-firmware" ''
-            export LOCAL_MPY_DIR="$PWD/build-micropython-src"
-            export BUILD_DIR="$PWD/build-ESP32_GENERIC_C6"
-            export NCU=$(nproc)
+        #         build-firmware = pkgs.writeShellScriptBin "build-firmware" ''
+        #             export LOCAL_MPY_DIR="$PWD/build-micropython-src"
+        #             export BUILD_DIR="$PWD/build-ESP32_GENERIC_C6"
+        #             export NCU=$(nproc)
+        #
+        #             echo "1. Cleaning previous builds..."
+        #             rm -rf "$LOCAL_MPY_DIR" "$BUILD_DIR"
+        #
+        #             echo "2. Staging writable MicroPython source tree & submodules..."
+        #             mkdir -p "$LOCAL_MPY_DIR"
+        #             cp -rT ${micropython-src} "$LOCAL_MPY_DIR"
+        #             chmod -R +w "$LOCAL_MPY_DIR"
+        #
+        #             rm -rf "$LOCAL_MPY_DIR/lib/micropython-lib" "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
+        #             mkdir -p "$LOCAL_MPY_DIR/lib/micropython-lib" "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
+        #
+        #             cp -rT ${micropython-lib-src} "$LOCAL_MPY_DIR/lib/micropython-lib"
+        #             cp -rT ${berkeley-db-src} "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
+        #             chmod -R +w "$LOCAL_MPY_DIR/lib/"
+        #
+        #             echo "3. Forcing USB Serial JTAG REPL configuration..."
+        #             cat << 'EOF' >> "$LOCAL_MPY_DIR/ports/esp32/boards/ESP32_GENERIC_C6/sdkconfig.board"
+        #           CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+        #           # CONFIG_ESP_CONSOLE_UART_DEFAULT is not set
+        #           CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+        #           EOF
+        #
+        #             echo "4. Pre-building host mpy-cross..."
+        #             env -i PATH="$PATH" make -C "$LOCAL_MPY_DIR/mpy-cross" -j$NCU
+        #
+        #             echo "5. Building ESP32 firmware..."
+        #             idf.py -B "$BUILD_DIR" -C "$LOCAL_MPY_DIR/ports/esp32" -D MICROPY_BOARD=ESP32_GENERIC_C6 build
+        #         '';
 
-            echo "1. Cleaning previous builds..."
-            rm -rf "$LOCAL_MPY_DIR" "$BUILD_DIR"
-
-            echo "2. Staging writable MicroPython source tree & submodules..."
-            mkdir -p "$LOCAL_MPY_DIR"
-            cp -rT ${micropython-src} "$LOCAL_MPY_DIR"
-            chmod -R +w "$LOCAL_MPY_DIR"
-
-            rm -rf "$LOCAL_MPY_DIR/lib/micropython-lib" "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
-            mkdir -p "$LOCAL_MPY_DIR/lib/micropython-lib" "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
-
-            cp -rT ${micropython-lib-src} "$LOCAL_MPY_DIR/lib/micropython-lib"
-            cp -rT ${berkeley-db-src} "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
-            chmod -R +w "$LOCAL_MPY_DIR/lib/"
-
-            echo "3. Forcing USB Serial JTAG REPL configuration..."
-            cat << 'EOF' >> "$LOCAL_MPY_DIR/ports/esp32/boards/ESP32_GENERIC_C6/sdkconfig.board"
-          CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
-          # CONFIG_ESP_CONSOLE_UART_DEFAULT is not set
-          CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
-          EOF
-
-            echo "4. Pre-building host mpy-cross..."
-            env -i PATH="$PATH" make -C "$LOCAL_MPY_DIR/mpy-cross" -j$NCU
-
-            echo "5. Building ESP32 firmware..."
-            idf.py -B "$BUILD_DIR" -C "$LOCAL_MPY_DIR/ports/esp32" -D MICROPY_BOARD=ESP32_GENERIC_C6 build
-        '';
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
           BUILD_DIR="./build-ESP32_GENERIC_C6"
           FIRMWARE_BIN="$BUILD_DIR/firmware.bin"
@@ -199,7 +200,7 @@
       {
         devShells.default = pkgs.mkShell {
           # Inherit from ESP-IDF 5.x environment
-          inputsFrom = [ espDevShell ];
+          # inputsFrom = [ espDevShell ];
 
           env = {
             ESP_IDF_VERSION = "5.5.4";
@@ -219,7 +220,7 @@
             python3
 
             # Local helper scripts
-            build-firmware
+            # build-firmware
             dm-flash
             run-main
             run-uwb-test
