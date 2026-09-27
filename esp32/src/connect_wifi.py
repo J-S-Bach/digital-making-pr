@@ -20,8 +20,8 @@ def connect_wifi(device_id: str, hostname: str):
     station = network.WLAN(network.STA_IF)
 
     station.active(True)
-    station.connect(config.WIFI_NAME, config.WIFI_PASSWORD)
     station.config(pm=network.WLAN.PM_NONE)
+    station.connect(config.WIFI_NAME, config.WIFI_PASSWORD)
 
     # Wait for connection
     timeout = 10
