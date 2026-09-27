@@ -1,4 +1,5 @@
 import atexit
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import NamedTuple
 
@@ -56,7 +57,12 @@ class TechnologyHandler:
         _ = self._post_for_all_devices("/bluetooth-visibility/disable")
 
     def scan_device_positions(self):
-        if len(self.tracking_devices) > 1:
+        print("--no-calibration" in sys.argv)
+        if (
+            len(self.tracking_devices) > 1
+            and not "--no-calibration" in sys.argv
+            and not "-g" in sys.argv
+        ):
             self.activate_all_device_visibility()
             clients_positions_estimations: list[NodeCalibrationData] = []
 

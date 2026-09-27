@@ -26,11 +26,7 @@
         '';
 
         uv-run = pkgs.writeShellScriptBin "uv-run" ''
-          uv run -m src.main
-        '';
-
-        uv-run-gui = pkgs.writeShellScriptBin "uv-run-gui" ''
-          uv run -m src.main --gui
+          uv run -m src.main "$@"
         '';
 
         run-calibration = pkgs.writeShellScriptBin "run-calibration" ''
@@ -50,12 +46,13 @@
             uv-run
             run-calibration
             run-ekf-tests
-            uv-run-gui
           ];
 
           shellHook = ''
             uv-install
-            echo "Python ecosystem initialized with 'uv'"
+            echo "Python ecosystem initialized with 'uv'."
+            echo "--gui for a website hosted on http://localhost:1234"
+            echo "--no-calibration for skipping calibration sequence. Calibration is needed to calibrate relative positions of multiple ESP32s"
           '';
         };
       }
