@@ -23,12 +23,13 @@
     };
 
     # Fetching Makerfabs driver repository with ref specified to prevent 404
-    # qorvo-dw3000-src = {
-    #   url = "github:Makerfabs/Makerfabs-ESP32-UWB-DW3000?ref=main";
-    #   flake = false;
-    # };
+    qorvo-dw3000-src = {
+      url = "github:Makerfabs/Makerfabs-ESP32-UWB-DW3000?ref=main";
+      flake = false;
+    };
 
     # esp-idf-nix.url = "github:Cbeck527/esp-idf-nix";
+    nix-esp-idf.url = "github:mirrexagon/nixpkgs-esp-dev";
   };
 
   outputs =
@@ -40,14 +41,25 @@
       micropython-lib-src,
       berkeley-db-src,
       microdot-src,
-      # qorvo-dw3000-src,
-      # esp-idf-nix,
+      qorvo-dw3000-src,
+      nix-esp-idf,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
           inherit system;
+          config = {
+            permittedInsecurePackages = [
+              "python3.13-ecdsa-0.19.2"
+            ];
+          };
+          overlays = [
+            (self: super: {
+              python310 = super.python313;
+            })
+            nix-esp-idf.overlays.default
+          ];
         };
 
         # espDevShell = esp-idf-nix.devShells.${system}.v5;
@@ -105,39 +117,39 @@
         '';
 
         # Build script that automatically stages Decadriver sources and micropython-lib
-        #         build-firmware = pkgs.writeShellScriptBin "build-firmware" ''
-        #             export LOCAL_MPY_DIR="$PWD/build-micropython-src"
-        #             export BUILD_DIR="$PWD/build-ESP32_GENERIC_C6"
-        #             export NCU=$(nproc)
-        #
-        #             echo "1. Cleaning previous builds..."
-        #             rm -rf "$LOCAL_MPY_DIR" "$BUILD_DIR"
-        #
-        #             echo "2. Staging writable MicroPython source tree & submodules..."
-        #             mkdir -p "$LOCAL_MPY_DIR"
-        #             cp -rT ${micropython-src} "$LOCAL_MPY_DIR"
-        #             chmod -R +w "$LOCAL_MPY_DIR"
-        #
-        #             rm -rf "$LOCAL_MPY_DIR/lib/micropython-lib" "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
-        #             mkdir -p "$LOCAL_MPY_DIR/lib/micropython-lib" "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
-        #
-        #             cp -rT ${micropython-lib-src} "$LOCAL_MPY_DIR/lib/micropython-lib"
-        #             cp -rT ${berkeley-db-src} "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
-        #             chmod -R +w "$LOCAL_MPY_DIR/lib/"
-        #
-        #             echo "3. Forcing USB Serial JTAG REPL configuration..."
-        #             cat << 'EOF' >> "$LOCAL_MPY_DIR/ports/esp32/boards/ESP32_GENERIC_C6/sdkconfig.board"
-        #           CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
-        #           # CONFIG_ESP_CONSOLE_UART_DEFAULT is not set
-        #           CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
-        #           EOF
-        #
-        #             echo "4. Pre-building host mpy-cross..."
-        #             env -i PATH="$PATH" make -C "$LOCAL_MPY_DIR/mpy-cross" -j$NCU
-        #
-        #             echo "5. Building ESP32 firmware..."
-        #             idf.py -B "$BUILD_DIR" -C "$LOCAL_MPY_DIR/ports/esp32" -D MICROPY_BOARD=ESP32_GENERIC_C6 build
-        #         '';
+        build-firmware = pkgs.writeShellScriptBin "build-firmware" ''
+            export LOCAL_MPY_DIR="$PWD/build-micropython-src"
+            export BUILD_DIR="$PWD/build-ESP32_GENERIC_C6"
+            export NCU=$(nproc)
+
+            echo "1. Cleaning previous builds..."
+            rm -rf "$LOCAL_MPY_DIR" "$BUILD_DIR"
+
+            echo "2. Staging writable MicroPython source tree & submodules..."
+            mkdir -p "$LOCAL_MPY_DIR"
+            cp -rT ${micropython-src} "$LOCAL_MPY_DIR"
+            chmod -R +w "$LOCAL_MPY_DIR"
+
+            rm -rf "$LOCAL_MPY_DIR/lib/micropython-lib" "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
+            mkdir -p "$LOCAL_MPY_DIR/lib/micropython-lib" "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
+
+            cp -rT ${micropython-lib-src} "$LOCAL_MPY_DIR/lib/micropython-lib"
+            cp -rT ${berkeley-db-src} "$LOCAL_MPY_DIR/lib/berkeley-db-1.xx"
+            chmod -R +w "$LOCAL_MPY_DIR/lib/"
+
+            echo "3. Forcing USB Serial JTAG REPL configuration..."
+            cat << 'EOF' >> "$LOCAL_MPY_DIR/ports/esp32/boards/ESP32_GENERIC_C6/sdkconfig.board"
+          CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+          # CONFIG_ESP_CONSOLE_UART_DEFAULT is not set
+          CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+          EOF
+
+            echo "4. Pre-building host mpy-cross..."
+            env -i PATH="$PATH" make -C "$LOCAL_MPY_DIR/mpy-cross" -j$NCU
+
+            echo "5. Building ESP32 firmware..."
+            idf.py -B "$BUILD_DIR" -C "$LOCAL_MPY_DIR/ports/esp32" -D MICROPY_BOARD=ESP32_GENERIC_C6 build
+        '';
 
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
           BUILD_DIR="./build-ESP32_GENERIC_C6"
@@ -196,14 +208,28 @@
           mkdir -p ./typings/microdot
           cp ${microdot-src}/src/microdot/* ./typings/microdot/
         '';
+
+        esp-idf-5-5-2 =
+          (pkgs.esp-idf-full.override {
+            rev = "v5.5.2";
+            sha256 = "sha256-f4bUrWeMeXlJ+2iCd9eIwLXZ07H71xZJWtrWE1aW8Fs=";
+          }).overrideAttrs
+            (oldAttrs: {
+              src = pkgs.fetchFromGitHub {
+                owner = "espressif";
+                repo = "esp-idf";
+                rev = "v5.5.2";
+                sha256 = "sha256-xYlj8uG/nxeMMNdAY8AbBiA7RYuEOOxoDyb+wVK8QWc=";
+                fetchSubmodules = true;
+              };
+            });
       in
       {
         devShells.default = pkgs.mkShell {
-          # Inherit from ESP-IDF 5.x environment
           # inputsFrom = [ espDevShell ];
 
           env = {
-            ESP_IDF_VERSION = "5.5.4";
+            ESP_IDF_VERSION = "5.5.2";
           };
 
           buildInputs = with pkgs; [
@@ -218,9 +244,10 @@
             ccache
             git
             python3
+            esp-idf-5-5-2
 
             # Local helper scripts
-            # build-firmware
+            build-firmware
             dm-flash
             run-main
             run-uwb-test
