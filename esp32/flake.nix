@@ -23,8 +23,8 @@
     };
 
     # Fetching Makerfabs driver repository with ref specified to prevent 404
-    qorvo-dw3000-src = {
-      url = "github:Makerfabs/Makerfabs-ESP32-UWB-DW3000?ref=main";
+    dw3000-src = {
+      url = "github:Fhilb/DW3000_Arduino";
       flake = false;
     };
 
@@ -41,7 +41,7 @@
       micropython-lib-src,
       berkeley-db-src,
       microdot-src,
-      qorvo-dw3000-src,
+      dw3000-src,
       nix-esp-idf,
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -62,7 +62,14 @@
           ];
         };
 
-        # espDevShell = esp-idf-nix.devShells.${system}.v5;
+        # TODO: Split down this file. Not for now, First making it work.
+        dw3000-mod = pkgs.runCommand "dw3000_mod" { } ''
+          # Copying the cmake and rest of the files needed to create the c module. Also using the DW3000_Arduino and copying into the custom nix store.
+          mkdir -p $out
+          cp -r ${dw3000-src} $out/DW3000_Arduino
+          cp ${./cmodules/dw3000}/* $out
+
+        '';
 
         run-main = pkgs.writeShellScriptBin "run-main" ''
                     echo "Executing local file main.py on ESP32"
@@ -140,7 +147,6 @@
             echo "3. Forcing USB Serial JTAG REPL configuration..."
             cat << 'EOF' >> "$LOCAL_MPY_DIR/ports/esp32/boards/ESP32_GENERIC_C6/sdkconfig.board"
           CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
-          # CONFIG_ESP_CONSOLE_UART_DEFAULT is not set
           CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
           EOF
 
@@ -148,7 +154,7 @@
             env -i PATH="$PATH" make -C "$LOCAL_MPY_DIR/mpy-cross" -j$NCU
 
             echo "5. Building ESP32 firmware..."
-            idf.py -B "$BUILD_DIR" -C "$LOCAL_MPY_DIR/ports/esp32" -D MICROPY_BOARD=ESP32_GENERIC_C6 build
+            idf.py -B "$BUILD_DIR" -C "$LOCAL_MPY_DIR/ports/esp32" -D MICROPY_BOARD=ESP32_GENERIC_C6 -D USER_C_MODULES="${dw3000-mod}/micropython.cmake" build
         '';
 
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
@@ -162,15 +168,8 @@
           fi
 
           TARGET_BIN=""
-          if [ -f "$FIRMWARE_BIN" ]; then
-            TARGET_BIN="$FIRMWARE_BIN"
-          elif [ -f "$FALLBACK_BIN" ]; then
-            TARGET_BIN="$FALLBACK_BIN"
-          else
-            echo "Error: No firmware image found!"
-            exit 1
-          fi
-            echo "Flashing firmware: $TARGET_BIN"
+          TARGET_BIN="$FIRMWARE_BIN"
+
 
           esptool --chip esp32c6 --baud 460800 erase_flash
           esptool --chip esp32c6  -b 460800 write_flash -z 0x0 "$TARGET_BIN"
@@ -226,7 +225,6 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          # inputsFrom = [ espDevShell ];
 
           env = {
             ESP_IDF_VERSION = "5.5.2";

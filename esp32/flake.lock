@@ -16,6 +16,22 @@
         "type": "github"
       }
     },
+    "dw3000-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1756109242,
+        "narHash": "sha256-pXPuL7FzVfLagluuUrEg4+vpW7ZyxZGAay+w1LKutBM=",
+        "owner": "Fhilb",
+        "repo": "DW3000_Arduino",
+        "rev": "cba0d0d7b26ab18adc1c06edc027d6b7c5d79eb7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Fhilb",
+        "repo": "DW3000_Arduino",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -151,33 +167,16 @@
         "type": "github"
       }
     },
-    "qorvo-dw3000-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1782887213,
-        "narHash": "sha256-zNb18LCTezUOzR2IVh4EjapSSDE0m4ZA/K/58LaXNAg=",
-        "owner": "Makerfabs",
-        "repo": "Makerfabs-ESP32-UWB-DW3000",
-        "rev": "9d449b8bdb07f464791cf09ec3b36aeb3c4f6595",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Makerfabs",
-        "ref": "main",
-        "repo": "Makerfabs-ESP32-UWB-DW3000",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "berkeley-db-src": "berkeley-db-src",
+        "dw3000-src": "dw3000-src",
         "flake-utils": "flake-utils",
         "microdot-src": "microdot-src",
         "micropython-lib-src": "micropython-lib-src",
         "micropython-src": "micropython-src",
         "nix-esp-idf": "nix-esp-idf",
-        "nixpkgs": "nixpkgs_2",
-        "qorvo-dw3000-src": "qorvo-dw3000-src"
+        "nixpkgs": "nixpkgs_2"
       }
     },
     "systems": {
