@@ -16,7 +16,7 @@ def generate_nanoid(length=21):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_- "
     return "".join(random.choice(alphabet) for _ in range(length))
 
-BLUETOOTH_RETRIES = 50
+BLUETOOTH_RETRIES = 10
 
 ble = bluetooth.BLE()
 ble.active(True)
