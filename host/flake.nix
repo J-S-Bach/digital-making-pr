@@ -16,10 +16,6 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        recess-deps = with pkgs; [
-          stdenv.cc.cc.lib
-          zlib
-        ];
 
         uv-install = pkgs.writeShellScriptBin "uv-install" ''
           uv sync
