@@ -1,6 +1,9 @@
 #ifndef ARDUINO_H
 #define ARDUINO_H
 
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -37,19 +40,6 @@
   ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
 #endif
 
-// C linkage for low-level functions
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-inline void pinMode(uint8_t pin, uint8_t mode) {}
-inline void digitalWrite(uint8_t pin, uint8_t val) {}
-inline void delay(unsigned long ms) {}
-
-#ifdef __cplusplus
-}
-#endif
-
 // Serial Mock mapping to stdout
 class HardwareSerial {
 public:
@@ -60,5 +50,35 @@ public:
 };
 
 extern HardwareSerial Serial;
+
+// C linkage for low-level Arduino functions mapped to ESP-IDF
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+inline void pinMode(uint8_t pin, uint8_t mode) {
+  gpio_reset_pin((gpio_num_t)pin);
+  if (mode == OUTPUT) {
+    gpio_set_direction((gpio_num_t)pin, GPIO_MODE_OUTPUT);
+  } else if (mode == INPUT_PULLUP) {
+    gpio_set_direction((gpio_num_t)pin, GPIO_MODE_INPUT);
+    gpio_set_pull_mode((gpio_num_t)pin, GPIO_PULLUP_ONLY);
+  } else {
+    gpio_set_direction((gpio_num_t)pin, GPIO_MODE_INPUT);
+    gpio_set_pull_mode((gpio_num_t)pin, GPIO_FLOATING);
+  }
+}
+
+inline void digitalWrite(uint8_t pin, uint8_t val) {
+  gpio_set_level((gpio_num_t)pin, val);
+}
+
+inline int digitalRead(uint8_t pin) { return gpio_get_level((gpio_num_t)pin); }
+
+inline void delay(unsigned long ms) { vTaskDelay(pdMS_TO_TICKS(ms)); }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ARDUINO_H

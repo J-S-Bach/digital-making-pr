@@ -154,10 +154,13 @@
             env -i PATH="$PATH" make -C "$LOCAL_MPY_DIR/mpy-cross" -j$NCU
 
             echo "5. Building ESP32 firmware..."
+
+            idf.py -B "$BUILD_DIR" -C "$LOCAL_MPY_DIR/ports/esp32" fullclean
+
             idf.py -B "$BUILD_DIR" -C "$LOCAL_MPY_DIR/ports/esp32" \
               -D MICROPY_BOARD=ESP32_GENERIC_C6 \
               -D USER_C_MODULES="${dw3000-mod}/micropython.cmake" \
-              build merge-bin
+              merge-bin
         '';
 
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''

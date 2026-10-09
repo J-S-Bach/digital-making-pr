@@ -1,51 +1,30 @@
-import time
-
 import dw3000
+import machine
 
-# ESP32-C6 pin configuration for DW3000
-RST_PIN = 4
-SS_PIN = 5
-IRQ_PIN = 6
+PIN_CS = 16
+PIN_RST = 4
 
+print("--- Starting DW3000 Raw C++ Test ---")
 
-def test_uwb():
-    print("==========================================")
-    print(" Testing DW3000 MicroPython C Module")
-    print("==========================================")
+# 1. Pull CS High
+cs = machine.Pin(PIN_CS, machine.Pin.OUT)
+cs.value(1)
 
-    # 1. Check Module Attributes
-    print("\n[1] Checking module contents:")
-    for item in dir(dw3000):
-        print("  -", item)
+# 2. Hardware Reset via GPIO 4
+print("Resetting chip...")
+rst = machine.Pin(PIN_RST, machine.Pin.OUT)
+rst.value(0)
+time.sleep_ms(10)
+rst.init(machine.Pin.IN)  # Let pull-up pull it high
+time.sleep_ms(200)  # 200ms stabilization delay
 
-    # 2. Test Initialization with Pin Arguments
-    print(
-        "\n[2] Initializing DW3000 hardware (RST={}, SS={}, IRQ={})...".format(
-            RST_PIN, SS_PIN, IRQ_PIN
-        )
-    )
-    try:
-        dw3000.init(RST_PIN, SS_PIN, IRQ_PIN)
-        print("    --> Success! DW3000 initialized.")
-    except Exception as e:
-        print("    --> Error during init():", e)
-        return
+# 3. Hand everything over to C++
+print("Passing control to C++ library...")
+dw3000.spiSelect(PIN_CS)
+dw3000.begin()
 
-    # 3. Read Distance Test Loop
-    print("\n[3] Reading distance telemetry (Press Ctrl+C to stop)...")
-    try:
-        for count in range(1, 6):
-            dist = dw3000.read_distance()
-            print("    Read #{}: Distance = {:.3f} m".format(count, dist))
-            time.sleep(1)
-    except Exception as e:
-        print("    --> Error reading distance:", e)
-        return
-
-    print("\n==========================================")
-    print(" All basic tests passed successfully!")
-    print("==========================================")
-
-
-if __name__ == "__main__":
-    test_uwb()
+print("Checking SPI connection...")
+if dw3000.checkSPI():
+    print("[SUCCESS] Connected to DW3000!")
+else:
+    print("[FAILED] SPI check failed. Check your MISO/MOSI/SCK physical wiring.")

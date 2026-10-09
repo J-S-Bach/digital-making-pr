@@ -57,7 +57,6 @@ class TechnologyHandler:
         _ = self._post_for_all_devices("/bluetooth-visibility/disable")
 
     def scan_device_positions(self):
-        print("--no-calibration" in sys.argv)
         if (
             len(self.tracking_devices) > 1
             and not "--no-calibration" in sys.argv
