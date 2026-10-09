@@ -17,6 +17,11 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
+        recess-deps = with pkgs; [
+          stdenv.cc.cc.lib
+          zlib
+        ];
+
         uv-install = pkgs.writeShellScriptBin "uv-install" ''
           uv sync
         '';
@@ -45,6 +50,7 @@
           ];
 
           shellHook = ''
+            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath recess-deps}:$LD_LIBRARY_PATH"
             uv-install
             echo "Python ecosystem initialized with 'uv'."
             echo "--gui for a website hosted on http://localhost:1234"
