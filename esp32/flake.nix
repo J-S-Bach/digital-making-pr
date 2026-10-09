@@ -23,12 +23,13 @@
     };
 
     # Fetching Makerfabs driver repository with ref specified to prevent 404
-    qorvo-dw3000-src = {
-      url = "github:Makerfabs/Makerfabs-ESP32-UWB-DW3000?ref=main";
+    dw3000-src = {
+      url = "github:Fhilb/DW3000_Arduino";
       flake = false;
     };
 
-    esp-idf-nix.url = "github:Cbeck527/esp-idf-nix";
+    # esp-idf-nix.url = "github:Cbeck527/esp-idf-nix";
+    nix-esp-idf.url = "github:mirrexagon/nixpkgs-esp-dev";
   };
 
   outputs =
@@ -40,17 +41,35 @@
       micropython-lib-src,
       berkeley-db-src,
       microdot-src,
-      qorvo-dw3000-src,
-      esp-idf-nix,
+      dw3000-src,
+      nix-esp-idf,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
           inherit system;
+          config = {
+            permittedInsecurePackages = [
+              "python3.13-ecdsa-0.19.2"
+            ];
+          };
+          overlays = [
+            (self: super: {
+              python310 = super.python313;
+            })
+            nix-esp-idf.overlays.default
+          ];
         };
 
-        espDevShell = esp-idf-nix.devShells.${system}.v5;
+        # TODO: Split down this file. Not for now, First making it work.
+        dw3000-mod = pkgs.runCommand "dw3000_mod" { } ''
+          # Copying the cmake and rest of the files needed to create the c module. Also using the DW3000_Arduino and copying into the custom nix store.
+          mkdir -p $out
+          cp -r ${dw3000-src} $out/DW3000_Arduino
+          cp ${./cmodules/dw3000}/* $out
+
+        '';
 
         run-main = pkgs.writeShellScriptBin "run-main" ''
                     echo "Executing local file main.py on ESP32"
@@ -128,7 +147,6 @@
             echo "3. Forcing USB Serial JTAG REPL configuration..."
             cat << 'EOF' >> "$LOCAL_MPY_DIR/ports/esp32/boards/ESP32_GENERIC_C6/sdkconfig.board"
           CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
-          # CONFIG_ESP_CONSOLE_UART_DEFAULT is not set
           CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
           EOF
 
@@ -144,6 +162,7 @@
               -D USER_C_MODULES="${dw3000-mod}/micropython.cmake" \
               merge-bin
         '';
+
         dm-flash = pkgs.writeShellScriptBin "dm-flash" ''
           BUILD_DIR="./build-ESP32_GENERIC_C6"
           FIRMWARE_BIN="$BUILD_DIR/firmware.bin"
@@ -155,15 +174,8 @@
           fi
 
           TARGET_BIN=""
-          if [ -f "$FIRMWARE_BIN" ]; then
-            TARGET_BIN="$FIRMWARE_BIN"
-          elif [ -f "$FALLBACK_BIN" ]; then
-            TARGET_BIN="$FALLBACK_BIN"
-          else
-            echo "Error: No firmware image found!"
-            exit 1
-          fi
-            echo "Flashing firmware: $TARGET_BIN"
+          TARGET_BIN="$FIRMWARE_BIN"
+
 
           esptool --chip esp32c6 --baud 460800 erase_flash
           esptool --chip esp32c6  -b 460800 write_flash -z 0x0 "$TARGET_BIN"
@@ -201,14 +213,27 @@
           mkdir -p ./typings/microdot
           cp ${microdot-src}/src/microdot/* ./typings/microdot/
         '';
+
+        esp-idf-5-5-2 =
+          (pkgs.esp-idf-full.override {
+            rev = "v5.5.2";
+            sha256 = "sha256-f4bUrWeMeXlJ+2iCd9eIwLXZ07H71xZJWtrWE1aW8Fs=";
+          }).overrideAttrs
+            (oldAttrs: {
+              src = pkgs.fetchFromGitHub {
+                owner = "espressif";
+                repo = "esp-idf";
+                rev = "v5.5.2";
+                sha256 = "sha256-xYlj8uG/nxeMMNdAY8AbBiA7RYuEOOxoDyb+wVK8QWc=";
+                fetchSubmodules = true;
+              };
+            });
       in
       {
         devShells.default = pkgs.mkShell {
-          # Inherit from ESP-IDF 5.x environment
-          inputsFrom = [ espDevShell ];
 
           env = {
-            ESP_IDF_VERSION = "5.5.4";
+            ESP_IDF_VERSION = "5.5.2";
           };
 
           buildInputs = with pkgs; [
@@ -223,6 +248,7 @@
             ccache
             git
             python3
+            esp-idf-5-5-2
 
             # Local helper scripts
             build-firmware

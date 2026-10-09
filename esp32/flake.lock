@@ -16,27 +16,43 @@
         "type": "github"
       }
     },
-    "esp-idf-nix": {
-      "inputs": {
-        "nixpkgs": "nixpkgs"
-      },
+    "dw3000-src": {
+      "flake": false,
       "locked": {
-        "lastModified": 1789276538,
-        "narHash": "sha256-CMbcfRqz25C+/QwhSjCdgtLQbdR47U9vcSZK2Iq96Ng=",
-        "owner": "Cbeck527",
-        "repo": "esp-idf-nix",
-        "rev": "5d6055d5b4867a159460c38568f81ff502c6fb14",
+        "lastModified": 1756109242,
+        "narHash": "sha256-pXPuL7FzVfLagluuUrEg4+vpW7ZyxZGAay+w1LKutBM=",
+        "owner": "Fhilb",
+        "repo": "DW3000_Arduino",
+        "rev": "cba0d0d7b26ab18adc1c06edc027d6b7c5d79eb7",
         "type": "github"
       },
       "original": {
-        "owner": "Cbeck527",
-        "repo": "esp-idf-nix",
+        "owner": "Fhilb",
+        "repo": "DW3000_Arduino",
         "type": "github"
       }
     },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "flake-utils_2": {
+      "inputs": {
+        "systems": "systems_2"
       },
       "locked": {
         "lastModified": 1731533236,
@@ -100,18 +116,37 @@
         "type": "github"
       }
     },
-    "nixpkgs": {
+    "nix-esp-idf": {
+      "inputs": {
+        "flake-utils": "flake-utils_2",
+        "nixpkgs": "nixpkgs"
+      },
       "locked": {
-        "lastModified": 1774709303,
-        "narHash": "sha256-D3Q07BbIA2KnTcSXIqqu9P586uWxN74zNoCH3h2ESHg=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "8110df5ad7abf5d4c0f6fb0f8f978390e77f9685",
+        "lastModified": 1767865407,
+        "narHash": "sha256-QWF1rZYd+HvNzLIeRS+OEBX7HF0EhWCGeLbMkgtbsIo=",
+        "owner": "mirrexagon",
+        "repo": "nixpkgs-esp-dev",
+        "rev": "5287d6e1ca9e15ebd5113c41b9590c468e1e001b",
         "type": "github"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
+        "owner": "mirrexagon",
+        "repo": "nixpkgs-esp-dev",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1767799921,
+        "narHash": "sha256-r4GVX+FToWVE2My8VVZH4V0pTIpnu2ZE8/Z4uxGEMBE=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d351d0653aeb7877273920cd3e823994e7579b0b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-25.11",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -132,36 +167,34 @@
         "type": "github"
       }
     },
-    "qorvo-dw3000-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1782887213,
-        "narHash": "sha256-zNb18LCTezUOzR2IVh4EjapSSDE0m4ZA/K/58LaXNAg=",
-        "owner": "Makerfabs",
-        "repo": "Makerfabs-ESP32-UWB-DW3000",
-        "rev": "9d449b8bdb07f464791cf09ec3b36aeb3c4f6595",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Makerfabs",
-        "ref": "main",
-        "repo": "Makerfabs-ESP32-UWB-DW3000",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "berkeley-db-src": "berkeley-db-src",
-        "esp-idf-nix": "esp-idf-nix",
+        "dw3000-src": "dw3000-src",
         "flake-utils": "flake-utils",
         "microdot-src": "microdot-src",
         "micropython-lib-src": "micropython-lib-src",
         "micropython-src": "micropython-src",
-        "nixpkgs": "nixpkgs_2",
-        "qorvo-dw3000-src": "qorvo-dw3000-src"
+        "nix-esp-idf": "nix-esp-idf",
+        "nixpkgs": "nixpkgs_2"
       }
     },
     "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_2": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",

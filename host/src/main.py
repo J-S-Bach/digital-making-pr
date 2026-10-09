@@ -1,6 +1,8 @@
 import asyncio
+import sys
 from asyncio import sleep
 from datetime import UTC, datetime
+from typing import Callable
 
 from src.calculate_relative_positions import (
     fuse_n_nodes_inverse_variance,
@@ -8,7 +10,10 @@ from src.calculate_relative_positions import (
 )
 from src.data_logger import DataLogger
 from src.estimations.ekf_layout import DevicePosition, Position
-from src.estimations.ekf_single_badge_non_linear import EkfSingleBadgeNonLinear
+from src.estimations.ekf_multiple_badges_sequential_gated_dropping_initial_velocity_05 import (
+    EkfMultipleBadgesSequentialGatedWithInitialVelocity,
+)
+from src.host_on_website import GraphCoordinate, host_on_website
 from src.incoming_data_handler import (
     TECHNOLOGY,
     DeviceId,
@@ -32,6 +37,11 @@ async def main():
         print("No Device Could be found...")
         return
 
+    update_website: Callable[[GraphCoordinate], None] | None = None
+
+    if "--gui" in sys.argv or "-g" in sys.argv:
+        update_website = await host_on_website()
+
     data_handler = UDPCatcher(UDP_PORT)
 
     technology_handler = TechnologyHandler(devices, target_udp_address)
@@ -53,7 +63,7 @@ async def main():
             )
         ]
 
-    ekf = EkfSingleBadgeNonLinear(device_positions)
+    ekf = EkfMultipleBadgesSequentialGatedWithInitialVelocity(device_positions)
 
     ekf_logger = DataLogger(
         [
@@ -110,6 +120,9 @@ async def main():
                 now_str,
             ]
         )
+
+        if update_website is not None:
+            update_website(data={"x": ekf_estimation.x, "y": ekf_estimation.y})
 
     data_handler.subscribe(incoming_data_handler)
     data_handler.start()
