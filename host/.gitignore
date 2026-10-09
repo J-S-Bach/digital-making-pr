@@ -1,0 +1,12 @@
+# Python stuff
+.venv
+__pycache__
+
+# Do not spill secrets
+.env
+
+# Do not upload sensor data.
+tracker
+logs
+
+.DS_Store

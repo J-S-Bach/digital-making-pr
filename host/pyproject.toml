@@ -1,0 +1,16 @@
+[project]
+name = "device-tracking-host"
+version = "0.0.1"
+requires-python = ">=3.13"
+dependencies = ["python-dotenv", "requests", "numpy", "filterpy", "Rich"]
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+
+
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false

@@ -1,0 +1,7 @@
+.stubs
+typings
+
+.DS_Store
+.env
+
+build-*

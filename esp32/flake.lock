@@ -1,0 +1,182 @@
+{
+  "nodes": {
+    "berkeley-db-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1748802872,
+        "narHash": "sha256-TuyxdMu34jR9p5WYHf12a+mI1ECRPjX457qwLSK2zfg=",
+        "owner": "micropython",
+        "repo": "berkeley-db-1.xx",
+        "rev": "0f3bb6947c2f57233916dccd7bb425d7bf86e5a6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "micropython",
+        "repo": "berkeley-db-1.xx",
+        "type": "github"
+      }
+    },
+    "esp-idf-nix": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1789276538,
+        "narHash": "sha256-CMbcfRqz25C+/QwhSjCdgtLQbdR47U9vcSZK2Iq96Ng=",
+        "owner": "Cbeck527",
+        "repo": "esp-idf-nix",
+        "rev": "5d6055d5b4867a159460c38568f81ff502c6fb14",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Cbeck527",
+        "repo": "esp-idf-nix",
+        "type": "github"
+      }
+    },
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "microdot-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1779266403,
+        "narHash": "sha256-NLesjPuWl3okFe2d/bUDzbi/mtU6bgcn8cG4evQwGMs=",
+        "owner": "miguelgrinberg",
+        "repo": "microdot",
+        "rev": "ab1793a2813858ef299367d34c594f7bfda2d1ea",
+        "type": "github"
+      },
+      "original": {
+        "owner": "miguelgrinberg",
+        "repo": "microdot",
+        "type": "github"
+      }
+    },
+    "micropython-lib-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1783050444,
+        "narHash": "sha256-/6a2REXzT80zJ3ju3xivktkZmwsnpkCSJi5ePZShpNE=",
+        "owner": "micropython",
+        "repo": "micropython-lib",
+        "rev": "68f8fe4e3c9b408642353c01d9c4f2667399a79b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "micropython",
+        "repo": "micropython-lib",
+        "type": "github"
+      }
+    },
+    "micropython-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789973780,
+        "narHash": "sha256-rQnYea+yDH1hqQZHs3lHJKVVB6S40p8Qx6Y/Qhcflgk=",
+        "owner": "micropython",
+        "repo": "micropython",
+        "rev": "1ea77a5d652ae2d7ac229857b602eb47e364fd6a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "micropython",
+        "repo": "micropython",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1774709303,
+        "narHash": "sha256-D3Q07BbIA2KnTcSXIqqu9P586uWxN74zNoCH3h2ESHg=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "8110df5ad7abf5d4c0f6fb0f8f978390e77f9685",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1782959384,
+        "narHash": "sha256-xnJJk+ct+D2+wdRxj1wk36w5zV9RVESwRqcklPdt3fM=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "65179426c83bb3f6bc14898b42ea1c6f01d374b0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "qorvo-dw3000-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1782887213,
+        "narHash": "sha256-zNb18LCTezUOzR2IVh4EjapSSDE0m4ZA/K/58LaXNAg=",
+        "owner": "Makerfabs",
+        "repo": "Makerfabs-ESP32-UWB-DW3000",
+        "rev": "9d449b8bdb07f464791cf09ec3b36aeb3c4f6595",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Makerfabs",
+        "ref": "main",
+        "repo": "Makerfabs-ESP32-UWB-DW3000",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "berkeley-db-src": "berkeley-db-src",
+        "esp-idf-nix": "esp-idf-nix",
+        "flake-utils": "flake-utils",
+        "microdot-src": "microdot-src",
+        "micropython-lib-src": "micropython-lib-src",
+        "micropython-src": "micropython-src",
+        "nixpkgs": "nixpkgs_2",
+        "qorvo-dw3000-src": "qorvo-dw3000-src"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

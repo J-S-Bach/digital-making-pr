@@ -1,0 +1,25 @@
+{
+  "stubPath": "./typings",
+  "extraPaths": ["./src"],
+
+  "reportMissingModuleSource": false,
+  "reportOptionalContextManager": false,
+  "reportPrivateLocalImportUsage": false,
+
+  "reportUnknownVariableType": false,
+  "reportUnknownParameterType": false,
+  "reportUnknownArgumentType": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownLambdaType": false,
+  "reportMissingTypeArgument": false,
+
+  "typeCheckingMode": "standard",
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Linux",
+
+  "executionEnvironments": [
+    {
+      "root": "."
+    }
+  ]
+}
