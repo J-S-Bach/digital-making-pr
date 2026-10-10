@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-python310.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
 
     micropython-src = {
@@ -36,6 +37,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-python310,
       flake-utils,
       micropython-src,
       micropython-lib-src,
@@ -51,12 +53,12 @@
           inherit system;
           config = {
             permittedInsecurePackages = [
-              "python3.13-ecdsa-0.19.2"
+              "python3.14-ecdsa-0.19.2"
             ];
           };
           overlays = [
             (self: super: {
-              python310 = super.python313;
+              python310 = nixpkgs-python310.legacyPackages.${system}.python310;
             })
             nix-esp-idf.overlays.default
           ];
@@ -217,7 +219,7 @@
         esp-idf-5-5-2 =
           (pkgs.esp-idf-full.override {
             rev = "v5.5.2";
-            sha256 = "sha256-f4bUrWeMeXlJ+2iCd9eIwLXZ07H71xZJWtrWE1aW8Fs=";
+            sha256 = "sha256-xYlj8uG/nxeMMNdAY8AbBiA7RYuEOOxoDyb+wVK8QWc=";
           }).overrideAttrs
             (oldAttrs: {
               src = pkgs.fetchFromGitHub {

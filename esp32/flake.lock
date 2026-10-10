@@ -71,11 +71,11 @@
     "microdot-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1779266403,
-        "narHash": "sha256-NLesjPuWl3okFe2d/bUDzbi/mtU6bgcn8cG4evQwGMs=",
+        "lastModified": 1789722120,
+        "narHash": "sha256-XdgMevBtuIoKUb+glNpWHhmnlk13izM6iAr1KKj1//g=",
         "owner": "miguelgrinberg",
         "repo": "microdot",
-        "rev": "ab1793a2813858ef299367d34c594f7bfda2d1ea",
+        "rev": "7742db9ff9f49635de3387145fafe56bf2377a97",
         "type": "github"
       },
       "original": {
@@ -87,11 +87,11 @@
     "micropython-lib-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1783050444,
-        "narHash": "sha256-/6a2REXzT80zJ3ju3xivktkZmwsnpkCSJi5ePZShpNE=",
+        "lastModified": 1791642054,
+        "narHash": "sha256-nMt82PLbIbCWHufoTkAOso58Sn1kWnFovoqbQhSODkk=",
         "owner": "micropython",
         "repo": "micropython-lib",
-        "rev": "68f8fe4e3c9b408642353c01d9c4f2667399a79b",
+        "rev": "f652fb2dfdd231e9c9c0cc1a10e12fdc9025ce95",
         "type": "github"
       },
       "original": {
@@ -103,11 +103,11 @@
     "micropython-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1789973780,
-        "narHash": "sha256-rQnYea+yDH1hqQZHs3lHJKVVB6S40p8Qx6Y/Qhcflgk=",
+        "lastModified": 1791641285,
+        "narHash": "sha256-rNh4kaGN1WLuTOCxMnUsVWe9W9m9OrFVkJH/mROko4s=",
         "owner": "micropython",
         "repo": "micropython",
-        "rev": "1ea77a5d652ae2d7ac229857b602eb47e364fd6a",
+        "rev": "23f0e61b47f0adf9a8f1259ec603892f27a69eb7",
         "type": "github"
       },
       "original": {
@@ -151,13 +151,29 @@
         "type": "github"
       }
     },
-    "nixpkgs_2": {
+    "nixpkgs-python310": {
       "locked": {
-        "lastModified": 1782959384,
-        "narHash": "sha256-xnJJk+ct+D2+wdRxj1wk36w5zV9RVESwRqcklPdt3fM=",
+        "lastModified": 1735563628,
+        "narHash": "sha256-OnSAY7XDSx7CtDoqNh8jwVwh4xNL/2HaJxGjryLWzX8=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "65179426c83bb3f6bc14898b42ea1c6f01d374b0",
+        "rev": "b134951a4c9f3c995fd7be05f3243f8ecd65d798",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-24.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1791456040,
+        "narHash": "sha256-H83yz/do+hjOO0uujHyH8RgtIQP2v7Mw+cLwcZK/xKc=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "e7439b6b14ad3cc35d05608ebca9bce01a25f5f8",
         "type": "github"
       },
       "original": {
@@ -176,7 +192,8 @@
         "micropython-lib-src": "micropython-lib-src",
         "micropython-src": "micropython-src",
         "nix-esp-idf": "nix-esp-idf",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs_2",
+        "nixpkgs-python310": "nixpkgs-python310"
       }
     },
     "systems": {
