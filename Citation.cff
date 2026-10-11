@@ -1,6 +1,9 @@
 cff-version: 1.2.0
 message: "Citation for TU Wien project Digital Making"
-title: "Probabalistic Personal Actor Pinging (PPAP)"
+title: "Probabilistic Personal Actor Pinging (PPAP)"
+authors:
+  - family-names: "Kirner"
+    given-names: "Sebastian"
 version: 1.0.0
 date-released: 2026-10-11
 url: "https://github.com/J-S-Bach/digital-making-pr/tree/Submission-TU-Wien"
