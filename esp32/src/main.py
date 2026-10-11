@@ -4,19 +4,20 @@ import random
 
 import bluetooth
 from calibration_controller import CalibrationController
-from persistent_storage import PersistentStorage
-from microdot import Microdot, Request
-
 from connect_wifi import connect_wifi
 from esp32_bluetooth.Advertiser import BluetoothAdvertiser
 from esp32_bluetooth.Scanner import BluetoothScanner
+from microdot import Microdot, Request
+from persistent_storage import PersistentStorage
 from send_udp import send_udp_package
+
 
 def generate_nanoid(length=21):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_- "
     return "".join(random.choice(alphabet) for _ in range(length))
 
-BLUETOOTH_RETRIES = 50
+
+BLUETOOTH_RETRIES = 10
 
 ble = bluetooth.BLE()
 ble.active(True)
@@ -31,6 +32,7 @@ _DEVICE_ID = generate_nanoid()
 hostname = f"esp32-{DEVICE_MAC_ADDRESS[-6:]}"
 bluetooth_advertiser = BluetoothAdvertiser()
 calibration_controller: CalibrationController | None = None
+
 
 @app.route("/bluetooth-visibility/enable", methods=["POST"])
 async def bluetooth_visibility_enable(request: Request):
@@ -92,7 +94,9 @@ async def calibration_distance_set(request: Request, used_distance_cm: str):
         return 400
 
     encoded_uuid = int(body["scanningDeviceServiceUUID"], 16)
-    calibration_bluetooth_scanner = BluetoothScanner(target_service_uuids=[bluetooth.UUID(encoded_uuid)])
+    calibration_bluetooth_scanner = BluetoothScanner(
+        target_service_uuids=[bluetooth.UUID(encoded_uuid)]
+    )
     rssi_results: list[float] = []
 
     def handle_scan_result(id: bluetooth.UUID | str, rssi: int, distance: float):
@@ -104,24 +108,24 @@ async def calibration_distance_set(request: Request, used_distance_cm: str):
         rssi_results.append(rssi)
 
         if len(rssi_results) > BLUETOOTH_RETRIES:
+
             async def do_cancel():
                 print("Ending scanning for calibration sequence...")
                 scanning_task.cancel()
 
-            asyncio.create_task(
-                do_cancel()
-            )
+            asyncio.create_task(do_cancel())
 
     calibration_bluetooth_scanner.subscribe(handle_scan_result)
     scanning_task = asyncio.create_task(calibration_bluetooth_scanner.start())
-
 
     try:
         await scanning_task
     except asyncio.CancelledError:
         print("Scan task was cancelled as expected.")
 
-    calibration_controller.add_measurement(distance=used_distance_m, measurements=rssi_results)
+    calibration_controller.add_measurement(
+        distance=used_distance_m, measurements=rssi_results
+    )
 
     return "Success", 200
 
@@ -170,7 +174,7 @@ async def other_client_positions(request: Request):
         [],
         body["otherDeviceMacIds"],
         P0=persistent_storage.get("P0"),
-        N=persistent_storage.get("N")
+        N=persistent_storage.get("N"),
     )
 
     results = [
@@ -199,11 +203,13 @@ async def other_client_positions(request: Request):
         ]
 
         are_all_devices_found_more_than_10_times = all(
-            x >= BLUETOOTH_RETRIES for x in individual_device_found_distances_list_length
+            x >= BLUETOOTH_RETRIES
+            for x in individual_device_found_distances_list_length
         )
 
         # TODO: Also set a timeout if one other device is not reachable!
         if are_all_devices_found_more_than_10_times:
+
             async def do_cancel():
                 print("Ending scanning for calibration sequence...")
                 scanning_task.cancel()
@@ -265,7 +271,11 @@ async def bluetooth_wake_up(request: Request):
 
     encoded_uuid = int(body["trackedServiceSSID"], 16)
 
-    current_bluetooth_scanner = BluetoothScanner([bluetooth.UUID(encoded_uuid)], P0 = persistent_storage.get("P0"), N = persistent_storage.get("N"))
+    current_bluetooth_scanner = BluetoothScanner(
+        [bluetooth.UUID(encoded_uuid)],
+        P0=persistent_storage.get("P0"),
+        N=persistent_storage.get("N"),
+    )
 
     def handle_bluetooth_device_discovery(
         uuid: bluetooth.UUID | str, rssi: int, estimated_distance: float

@@ -1,9 +1,10 @@
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import time
 from typing import NamedTuple
 
 from src.data_logger import DataLogger
+from src.estimations.ekf_enforced_regular_intervalls import EkfEnforcedRegularIntervalls
 from src.estimations.ekf_layout import EkfCorrection, EkfLayout, Position
 from src.estimations.ekf_multiple_badge_non_linear_initial_velocity_05 import (
     EkfMultipleBadgeNonLinearWithVelocity,
@@ -32,35 +33,55 @@ POSSIBLE_FILTERS: list[type[EkfLayout]] = [
     EkfSingleBadgeNonLinearWithInitialVelocity,
     EkfMultipleBadgesSequentialGatedNoVelocity,
     EkfMultipleBadgesSequentialGatedWithInitialVelocity,
+    EkfEnforcedRegularIntervalls,
 ]
 
 POSSIBLE_NOISE_VARIANCES: list[float] = [0.1, 0.5, 1]
 
 
-class TestResultEntry(NamedTuple):
+class EkfAndRealDataPoint(NamedTuple):
+    ekf: EkfCorrection
     actual: Position
-    ekf: Position
+    timestamp: datetime
+    anchor: Position
+    tracking_device_id: str
 
 
 class TestResult(NamedTuple):
-    results: list[TestResultEntry]
+    results: list[EkfAndRealDataPoint]
     rmse: float
     mae: float
     max_error: float
 
 
-class EkfAndRealDataPoint(NamedTuple):
-    ekf: EkfCorrection
-    actual: Position
+speed_meters_per_second = 0.0725
+angle_degrees = 30
+# Angle in radians expected by python.
+angle_radians = math.radians(angle_degrees)
+distance_from_0_point = 2.5
 
 
-# Do we also need a start point?
-def get_actual_position(timestamp: datetime) -> Position:
+def get_actual_position(timedelta: timedelta) -> Position:
     """
     Takes current time and (or step index?) and returns the position that should actually be returned.
     Change this depending on test.
     """
-    return Position(x=0, y=0)
+
+    passed_distance_meters = (
+        timedelta.seconds + timedelta.microseconds / 1000000
+    ) * speed_meters_per_second
+
+    leftover_distance = distance_from_0_point - passed_distance_meters
+
+    # X Formula: x = distance * cos(angle)
+    real_x_coordinate = leftover_distance * math.cos(angle_radians)
+
+    # Y Formula: y = distance * sin(angle)
+    real_y_coordinate = leftover_distance * math.sin(angle_radians)
+
+    # print(f"Calculated {real_x_coordinate}/{real_y_coordinate}")
+
+    return Position(x=real_x_coordinate, y=real_y_coordinate)
 
 
 def calculate_results(
@@ -75,21 +96,16 @@ def calculate_results(
     if not ekf_and_real_comparison:
         return TestResult(results=[], rmse=0.0, mae=0.0, max_error=0.0)
 
-    results = [
-        TestResultEntry(actual=item.actual, ekf=Position(x=item.ekf.x, y=item.ekf.y))
-        for item in ekf_and_real_comparison
-    ]
-
     errors = [
         math.hypot(entry.ekf.x - entry.actual.x, entry.ekf.y - entry.actual.y)
-        for entry in results
+        for entry in ekf_and_real_comparison
     ]
 
     rmse = math.sqrt(sum(e**2 for e in errors) / len(errors))
     mae = sum(errors) / len(errors)
     max_error = max(errors)
 
-    return TestResult(results, rmse, mae, max_error)
+    return TestResult(ekf_and_real_comparison, rmse, mae, max_error)
 
 
 def performance_testing():
@@ -116,27 +132,44 @@ def performance_testing():
             "actual_y",
             "ekf_x",
             "ekf_y",
+            "tracking_device_position_x",
+            "tracking_device_position_y",
+            "tracking_device_id",
             "overall_rmse",
             "overall_max_error",
             "overall_mae",
             "noise_variance",
             "algorithm_name",
+            "timestamp",
         ],
         f"test_results_{time()}",
     )
 
     for test_case in test_cases:
         raw_test_case_results: list[EkfAndRealDataPoint] = []
+        first_datetime = None
 
         for test_set_data_point in test_case.data:
-            (scanner_id, distance, timestamp) = test_set_data_point
-            actual_position = get_actual_position(timestamp)
+            (scanner_id, distance, timestamp, anchor_x, anchor_y) = test_set_data_point
+
+            if first_datetime is None:
+                first_datetime = timestamp
+
+            passed_time = timestamp - first_datetime
+
+            actual_position = get_actual_position(passed_time)
 
             test_case.ekf.add_measurement(scanner_id, distance, timestamp=timestamp)
             ekf_correction = test_case.ekf.get_state(timestamp=timestamp)
 
             raw_test_case_results.append(
-                EkfAndRealDataPoint(ekf=ekf_correction, actual=actual_position)
+                EkfAndRealDataPoint(
+                    ekf=ekf_correction,
+                    actual=actual_position,
+                    timestamp=timestamp,
+                    anchor=Position(anchor_x, anchor_y),
+                    tracking_device_id=scanner_id,
+                )
             )
 
         calculated_test_set = calculate_results(raw_test_case_results)
@@ -148,17 +181,21 @@ def performance_testing():
                     result.actual.y,
                     result.ekf.x,
                     result.ekf.y,
+                    result.anchor.x,
+                    result.anchor.y,
+                    result.tracking_device_id,
                     calculated_test_set.rmse,
                     calculated_test_set.max_error,
                     calculated_test_set.mae,
                     test_case.ekf.base_variance,
                     test_case.ekf.descriptor,
+                    str(result.timestamp),
                 ]
             )
 
-        print(
-            f"Got test set results for test case {test_case.name}: RMSE of {calculated_test_set.rmse}"
-        )
+        # print(
+        #     f"Got test set results for test case {test_case.name}: RMSE of {calculated_test_set.rmse}"
+        # )
 
 
 if __name__ == "__main__":

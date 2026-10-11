@@ -10,11 +10,10 @@ except ImportError:
 
 class BluetoothScanner:
     # Subject to be set by calibration sequence - therefore updatable by __init__
-    P0 = -75.0
     """
     RSSI measured exactly 1 meter away
     """
-    N = 2.5
+
     """
     Environmental path loss factor (2.0 = open, 3.0+ = heavy walls)
     """

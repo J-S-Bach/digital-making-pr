@@ -4,7 +4,12 @@ from asyncio import sleep
 from datetime import UTC, datetime
 from typing import Callable
 
+from rich.prompt import Prompt
+
 from src.calculate_relative_positions import (
+    DeviceNodeStats,
+    FusedVarianceData,
+    NodeStats,
     fuse_n_nodes_inverse_variance,
     generate_device_positions,
 )
@@ -53,9 +58,107 @@ async def main():
     device_positions: list[DevicePosition] = []
 
     if position_estimations is not None:
-        fused_nodes = fuse_n_nodes_inverse_variance(position_estimations)
+        # fused_nodes = fuse_n_nodes_inverse_variance(position_estimations)
+        # Anchor MDS positions
+        select_device_string = [
+            f"-  {device.hostname} [{index + 1}]\n"
+            for index, device in enumerate(devices)
+        ]
 
-        device_positions = generate_device_positions(fused_nodes)
+        zero_value: str = Prompt.ask(
+            f"Select a device to be the zero point:\n{''.join(select_device_string)}",
+            choices=[str(index + 1) for index, _ in enumerate(devices)],
+            default="auto",
+        )
+
+        x_axis_device: str = Prompt.ask(
+            f"Select the that is in the positive x value space:\n{''.join(select_device_string)}",
+            choices=[str(index + 1) for index, _ in enumerate(devices)],
+            default="auto",
+        )
+
+        y_axis_device: str = Prompt.ask(
+            f"Select the that is in the positive y value space:\n{''.join(select_device_string)}",
+            choices=[str(index + 1) for index, _ in enumerate(devices)],
+            default="auto",
+        )
+        dev_A = devices[int(zero_value) - 1]
+        dev_B = devices[int(x_axis_device) - 1]
+        dev_C = devices[int(y_axis_device) - 1]
+        # For testing purposes: Faking the position of each device to the ideal position.
+        ideal_fused_data = FusedVarianceData(
+            fused_distance_m=2.0,
+            total_nodes=3,
+            data_entries=[
+                # Device A's perspective
+                DeviceNodeStats(
+                    scanning_device=dev_A,
+                    data=[
+                        NodeStats(
+                            target_device=dev_B,
+                            mean_m=2.0,
+                            variance=0.01,
+                            inverse_variance=100.0,
+                            weight=0.5,
+                        ),
+                        NodeStats(
+                            target_device=dev_C,
+                            mean_m=2.0,
+                            variance=0.01,
+                            inverse_variance=100.0,
+                            weight=0.5,
+                        ),
+                    ],
+                ),
+                # Device B's perspective
+                DeviceNodeStats(
+                    scanning_device=dev_B,
+                    data=[
+                        NodeStats(
+                            target_device=dev_A,
+                            mean_m=2.0,
+                            variance=0.01,
+                            inverse_variance=100.0,
+                            weight=0.5,
+                        ),
+                        NodeStats(
+                            target_device=dev_C,
+                            mean_m=2.0,
+                            variance=0.01,
+                            inverse_variance=100.0,
+                            weight=0.5,
+                        ),
+                    ],
+                ),
+                # Device C's perspective
+                DeviceNodeStats(
+                    scanning_device=dev_C,
+                    data=[
+                        NodeStats(
+                            target_device=dev_A,
+                            mean_m=2.0,
+                            variance=0.01,
+                            inverse_variance=100.0,
+                            weight=0.5,
+                        ),
+                        NodeStats(
+                            target_device=dev_B,
+                            mean_m=2.0,
+                            variance=0.01,
+                            inverse_variance=100.0,
+                            weight=0.5,
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        device_positions = generate_device_positions(
+            ideal_fused_data,
+            dev_A.device_id,
+            dev_B.device_id,
+            dev_C.device_id,
+        )
     else:
         device_positions = [
             DevicePosition.from_DeviceData(
