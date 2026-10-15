@@ -4,6 +4,12 @@ from time import time
 from typing import NamedTuple
 
 from src.data_logger import DataLogger
+<<<<<<< Updated upstream
+=======
+from src.estimations.ekf_enforced_regular_intervalls import (
+    EkfEnforceRegularUpdates,
+)
+>>>>>>> Stashed changes
 from src.estimations.ekf_layout import EkfCorrection, EkfLayout, Position
 from src.estimations.ekf_multiple_badge_non_linear_initial_velocity_05 import (
     EkfMultipleBadgeNonLinearWithVelocity,
@@ -32,9 +38,10 @@ POSSIBLE_FILTERS: list[type[EkfLayout]] = [
     EkfSingleBadgeNonLinearWithInitialVelocity,
     EkfMultipleBadgesSequentialGatedNoVelocity,
     EkfMultipleBadgesSequentialGatedWithInitialVelocity,
+    EkfEnforceRegularUpdates,
 ]
 
-POSSIBLE_NOISE_VARIANCES: list[float] = [0.1, 0.5, 1]
+POSSIBLE_NOISE_VARIANCES: list[float] = [0.1, 0.5, 1, 2, 3, 5, 10, 20, 35, 50, 100]
 
 
 class TestResultEntry(NamedTuple):
