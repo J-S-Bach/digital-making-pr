@@ -122,6 +122,7 @@ class TechnologyHandler:
                         "host_address": self.target_udp_address,
                     },
                 )
+                print("Bluetooth activated!")
 
             except ConnectionError as e:
                 print(f"Unable to connect to {device.hostname} due to {e}")

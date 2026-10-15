@@ -115,9 +115,14 @@ def fuse_n_nodes_inverse_variance(
     )
 
 
-def generate_device_positions(fused_data: FusedVarianceData) -> list[DevicePosition]:
-    """
-    Creates a list of device positions based on estimations.
+def generate_device_positions(
+    fused_data: FusedVarianceData,
+    primary_id: str | None = None,
+    secondary_id: str | None = None,
+    ref_positive_y_id: str | None = None,
+) -> list[DevicePosition]:
+    """Creates a list of device positions based on estimations, with optional anchor
+    alignment and reflection correction.
     """
 
     # Extract unique devices
@@ -142,8 +147,36 @@ def generate_device_positions(fused_data: FusedVarianceData) -> list[DevicePosit
                 dist[i, j] = dist[j, i] = node.mean_m
 
     coords = classical_mds(dist, dims=2)
+    pos_map = {dev.device_id: coords[i] for i, dev in enumerate(devices)}
+
+    if primary_id and secondary_id:
+        if primary_id in pos_map and secondary_id in pos_map:
+            origin = pos_map[primary_id]
+            pos_map = {dev_id: c - origin for dev_id, c in pos_map.items()}
+
+            sec_vec = pos_map[secondary_id]
+            angle = -np.arctan2(sec_vec[1], sec_vec[0])
+
+            rot_matrix = np.array(
+                [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+            )
+
+            pos_map = {dev_id: rot_matrix @ c for dev_id, c in pos_map.items()}
+
+    if (
+        ref_positive_y_id
+        and ref_positive_y_id in pos_map
+        and pos_map[ref_positive_y_id][1] < 0
+    ):
+        pos_map = {dev_id: np.array([c[0], -c[1]]) for dev_id, c in pos_map.items()}
 
     return [
-        DevicePosition.from_DeviceData(device_data=dev, position=Position(x, y))
-        for dev, (x, y) in zip(devices, coords)
+        DevicePosition.from_DeviceData(
+            device_data=dev,
+            position=Position(
+                round(float(pos_map[dev.device_id][0]), 3),
+                round(float(pos_map[dev.device_id][1]), 3),
+            ),
+        )
+        for dev in devices
     ]

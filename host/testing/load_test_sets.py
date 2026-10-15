@@ -1,25 +1,27 @@
-
 import csv
 from datetime import datetime
 from pathlib import Path
 from typing import NamedTuple
 
-from src.estimations.ekf_layout import  DevicePosition, EkfLayout, Position
 from dateutil import parser
+
+from src.estimations.ekf_layout import DevicePosition, EkfLayout, Position
+
 
 class TestCase(NamedTuple):
     ekf: EkfLayout
     name: str
-    data: list[tuple[str, float, datetime]]
+    data: list[tuple[str, float, datetime, float, float]]
+
 
 class TestSet(NamedTuple):
     """
     Contains everything that we need from one file that we are testing.
     """
-    name: str
-    data_points: list[tuple[str, float, datetime]]
-    scanner_locations: list[DevicePosition]
 
+    name: str
+    data_points: list[tuple[str, float, datetime, float, float]]
+    scanner_locations: list[DevicePosition]
 
 
 def load_test_sets() -> list[TestSet]:
@@ -37,7 +39,7 @@ def load_test_sets() -> list[TestSet]:
         if not file_path.is_file():
             continue
 
-        data_points: list[tuple[str, float, datetime]] = []
+        data_points: list[tuple[str, float, datetime, float, float]] = []
         unique_scanners = {}
 
         with open(file_path, mode="r", encoding="utf-8") as f:
@@ -46,7 +48,15 @@ def load_test_sets() -> list[TestSet]:
                 device_id = str(row["device_id"])
                 distance = float(row["tracked_device_raw_distance_data"])
                 timestamp = parser.parse(row["timestamp"])
-                data_points.append((device_id, distance, timestamp))
+                data_points.append(
+                    (
+                        device_id,
+                        distance,
+                        timestamp,
+                        float(row["tracking_device_position_x"]),
+                        float(row["tracking_device_position_y"]),
+                    )
+                )
 
                 if device_id not in unique_scanners:
                     unique_scanners[device_id] = DevicePosition(
@@ -58,7 +68,7 @@ def load_test_sets() -> list[TestSet]:
                         # TODO: Place matching properties in csv, even if unused here. Logging but unused > no logging but needed
                         bluetooth_mac="",
                         hostname="",
-                        ip_address=""
+                        ip_address="",
                     )
 
         test_sets.append(
