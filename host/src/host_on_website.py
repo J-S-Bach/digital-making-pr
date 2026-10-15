@@ -41,9 +41,9 @@ def _run_dash():
 
         fig = go.Figure(
             go.Scatter(
-                x=latest_data["x"],
-                y=latest_data["y"],
-                mode="markers+lines",
+                x=[latest_data["x"][-1]],
+                y=[latest_data["y"][-1]],
+                mode="markers",
                 marker={"size": 8, "color": "blue"},
                 line={"width": 2},
             )
@@ -51,7 +51,9 @@ def _run_dash():
         _ = fig.update_layout(
             xaxis_title="X Coordinate",
             yaxis_title="Y Coordinate",
-            yaxis={"scaleanchor": "x", "scaleratio": 1},
+            xaxis=dict(range=[-20, 20], fixedrange=True),
+            yaxis=dict(range=[-20, 20], fixedrange=True),
+
             margin={"l": 40, "r": 40, "t": 20, "b": 40},
         )
 

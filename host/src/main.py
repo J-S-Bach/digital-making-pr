@@ -44,8 +44,6 @@ async def main():
 
     update_website: Callable[[GraphCoordinate], None] | None = None
 
-    if "--gui" in sys.argv or "-g" in sys.argv:
-        update_website = await host_on_website()
 
     data_handler = UDPCatcher(UDP_PORT)
 
@@ -187,6 +185,9 @@ async def main():
         name="Device_Updated_EKF_With_Values",
     )
 
+    if "--gui" in sys.argv or "-g" in sys.argv:
+        update_website = await host_on_website()
+        
     def incoming_data_handler(
         technology: TECHNOLOGY,
         estimated_distance: EstimatedDistance,
